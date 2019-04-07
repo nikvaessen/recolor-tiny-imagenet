@@ -9,12 +9,14 @@
 ################################################################################
 
 import numpy as np
+import pickle
 
 from keras import Sequential
 from keras.layers import Activation, Conv2D, BatchNormalization,\
     UpSampling2D, ZeroPadding2D
 from keras.activations import relu, softmax
 from keras import losses
+from ImageProcessing import DataGenerator
 
 ################################################################################
 
@@ -144,7 +146,31 @@ def init_model():
 def main():
     x = np.ones((1, 224, 224, 1))
 
+    params = {'dim_in': (64 * 64),
+              'dim_out': (64 * 64),
+              'batch_size': 64,
+              'n_channels_in': 1,
+              'n_channels_out' : 3,
+              'shuffle': True}
+
+    with open('./train_ids.pickle', 'rb') as fp:
+        train_partition = pickle.load(fp)
+
+    with open('./validation_ids.pickle', 'rb') as fp:
+        validation_partition = pickle.load(fp)
+
+    labels = [] # Only important for the datagenerator model. label is generated at the time of loading
+
+    training_generator = DataGenerator(train_partition, labels, **params)
+    validation_generator = DataGenerator(validation_partition, labels, **params)
+
     model: Sequential = init_model()
+
+# To use with model generator
+    # model.fit_generator(generator=training_generator,
+    #                     validation_data=validation_generator,
+    #                     use_multiprocessing=True,
+    #                     workers=6)
 
     y = model.predict(x, batch_size=1)
 
