@@ -6,16 +6,20 @@
 ################################################################################
 
 import numpy as np
+import matplotlib.pyplot as plt
 
-from keras.preprocessing import image
+from skimage import io, color
 
 ################################################################################
 
 rgb_min = 0
 rgb_max = 255
 
-preferred_bin_size = 20
+lab_min = -128
+lab_max = 127
 
+rgb_preferred_bin_size = 20
+lab_preferred_bin_size = 10
 
 ################################################################################
 # image loading and display
@@ -24,32 +28,44 @@ test_image = "../test_images/test_image2.png"
 
 
 def read_image(fn: str):
-    return image.img_to_array(image.load_img(fn)).astype(np.int16)
+    return io.imread(fn)[:, :, 0:3]
 
 
 def plot_image(x: np.ndarray):
-    import matplotlib.pyplot as plt
-
     plt.figure(0)
     plt.imshow(x)
-
-    plt.figure(1)
-    y = bin_rgb(x)
-    plt.imshow(y)
-
-    eq = (x == y).all()
-    print(eq)
 
     plt.show()
 
 
-def bin_rgb(x, binsize=preferred_bin_size):
+def plot_img_converted(img, converter):
+    plt.figure(0)
+    plt.imshow(img)
+
+    plt.figure(1)
+    plt.imshow(converter(img))
+
+    plt.show()
+
+################################################################################
+# converting, binning and encoding of bins as classes
+
+
+def convert_rgb_to_lab(img):
+    return color.rgb2lab(img)
+
+
+def convert_lab_to_rgb(img):
+    return color.lab2rgb(img)
+
+
+def bin_rgb(x, binsize=rgb_preferred_bin_size):
     return np.minimum(rgb_max, (((x // binsize) * binsize)
                                 + (binsize // 2)).astype(np.int16))
 
 
 def one_hot_encode_rgb_img(img: np.ndarray,
-                           binsize=preferred_bin_size) -> np.ndarray:
+                           binsize=rgb_preferred_bin_size) -> np.ndarray:
     # potential improvement: do a batch of images at the same time
     bin = (rgb_max // binsize)
 
@@ -60,13 +76,38 @@ def one_hot_encode_rgb_img(img: np.ndarray,
     return r * bin**2 + g * bin + b
 
 
-def soft_encode_rgb_img(img, n=5, binsize=preferred_bin_size):
-    r = range(0, 255 // binsize)
+def soft_encode_rgb_img(img, n=5, binsize=rgb_preferred_bin_size):
+    raise NotImplementedError()
 
-    for ridx in r:
-        for bidx in r:
-            for gidx in r:
-                pass
+
+def bin_lab(img, binsize=lab_preferred_bin_size):
+    c = img[:, :, 1:]
+
+    binned_color = ((c // binsize) * binsize) + (binsize // 2)
+    binned_color = np.minimum(lab_max, binned_color)
+    binned_color = np.maximum(lab_min, binned_color)
+
+    img[:, :, 1:] = binned_color
+
+    return img
+
+
+def one_hot_encode_lab_img(img: np.ndarray,
+                           binsize=lab_preferred_bin_size):
+    bin = abs(lab_max - lab_min) // binsize
+
+    a = (img[:, :, 1] + 128)
+    print(a)
+    a = a // binsize
+    print(a)
+
+    b = (img[:, :, 2] + 128) // binsize
+
+    return a * bin + b
+
+
+###############################################################################
+# tests
 
 
 def _test_image():
@@ -94,14 +135,46 @@ def _test_image():
     return img
 
 
-def main():
-    # img = _test_image()
-    # img = bin_rgb(img)
-    # print(one_hot_encode_rgb_img(img))
-
+def test_lab_conversion_scikit():
     img = read_image(test_image)
-    print(img.shape, np.max(img), np.min(img))
-    plot_image(img)
+    lab = color.rgb2lab(img)
+    rgb = color.lab2rgb(lab)
+
+    print("img", img.shape, np.min(img), np.max(img), img.dtype)
+    print("lab", lab.shape, np.min(lab), np.max(lab), lab.dtype)
+    print("rgb", rgb.shape, np.min(rgb), np.max(rgb), rgb.dtype)
+
+
+def test_rgb2lab2binned2rgb():
+    img = read_image(test_image) / 255
+
+    def convert(img):
+        lab = convert_rgb_to_lab(img)
+        binned = bin_lab(lab)
+        rgb = convert_lab_to_rgb(binned)
+
+        return rgb
+
+    plot_img_converted(img, convert)
+
+
+def test_encoding():
+    img = _test_image()
+    lab = convert_rgb_to_lab(img)
+
+    print("rgb\n", img)
+    print("lab\n", lab)
+
+    r = one_hot_encode_lab_img(lab)
+    print(r)
+
+
+
+def main():
+    # test_lab_conversion_scikit()
+    # test_rgb2lab2binned2rgb()
+    test_encoding()
+    pass
 
 
 if __name__ == '__main__':
