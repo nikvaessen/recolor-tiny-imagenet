@@ -159,7 +159,8 @@ def main():
     with open('./validation_ids.pickle', 'rb') as fp:
         validation_partition = pickle.load(fp)
 
-    labels = [] # Only important for the datagenerator model. label is generated at the time of loading
+    # Only important for the datagenerator model. label is generated at the time of loading
+    labels = []
 
     training_generator = DataGenerator(train_partition, labels, **params)
     validation_generator = DataGenerator(validation_partition, labels, **params)
