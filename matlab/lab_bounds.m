@@ -1,11 +1,13 @@
 % define constants 
 bin_size = 10;
-lab_min = -128;
-lab_max =  127;
+lab_min = -110;
+lab_max =  110;
 range = lab_min:bin_size:lab_max;
 n = length(range);
 
 l = 50;
+
+write_plots_to_file = 1;
 
 % calculate the boundaries
 bins = zeros(n^2, 4);
@@ -52,10 +54,17 @@ sRGB_gamut = gamutfilter(sRGB);
 aRGB_gamut = gamutfilter(aRGB);
 
 % display plots
-imwrite(sRGB, 'sRGB.png', 'png')
-imwrite(sRGB_gamut, 'sRGB_gamut.png', 'png')
-imwrite(aRGB, 'aRGB.png', 'png')
-imwrite(aRGB_gamut, 'aRGB_gamut.png', 'png')
+figure(1); imshow(sRGB, 'InitialMagnification', 2000)
+figure(2); imshow(sRGB_gamut, 'InitialMagnification', 2000)
+figure(3); imshow(aRGB, 'InitialMagnification', 2000)
+figure(4); imshow(aRGB_gamut, 'InitialMagnification', 2000)
+
+% if write_plots_to_file
+%     imwrite(sRGB, 'sRGB.png', 'png', 'InitialMagnification', 2000)
+%     imwrite(sRGB_gamut, 'sRGB_gamut.png', 'png', 'InitialMagnification', 2000)
+%     imwrite(aRGB, 'aRGB.png', 'png', 'InitialMagnification', 2000)
+%     imwrite(aRGB_gamut, 'aRGB_gamut.png', 'png', 'InitialMagnification', 2000)
+% end
 
 % function definition to filter out-gamut
 function out = gamutfilter(img)
