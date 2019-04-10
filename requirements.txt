@@ -3,3 +3,4 @@ numpy
 tensorflow
 scikit-image
 matplotlib
+scipy

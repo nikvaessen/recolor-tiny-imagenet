@@ -5,10 +5,16 @@
 # author(s): Nik Vaessen, Merlin Sewina
 ################################################################################
 
+import math
+
 import numpy as np
 import matplotlib.pyplot as plt
 
 from skimage import io, color
+from color import colorconv as color_custom
+
+from scipy import linalg
+
 
 ################################################################################
 
@@ -57,6 +63,10 @@ def convert_rgb_to_lab(img):
 
 def convert_lab_to_rgb(img):
     return color.lab2rgb(img)
+
+
+def custom_lab2rgb(lab):
+    return color_custom.lab2rgb(lab, clip=False)
 
 
 def bin_rgb(x, binsize=rgb_preferred_bin_size):
@@ -110,7 +120,7 @@ def one_hot_encode_lab_img(img: np.ndarray,
 # tests
 
 
-def _test_image():
+def _get_test_image():
     img = np.ones((1, 5, 3))
     img[0, 0, 0] = 255
     img[0, 0, 1] = 0
@@ -133,6 +143,69 @@ def _test_image():
     img[0, 4, 0] = 0
 
     return img
+
+
+def test_lab_bounds():
+    bin_size = lab_preferred_bin_size
+    rang = range(lab_min, lab_max, bin_size)
+
+    print(rang[-1])
+
+    bins = []
+    for i in rang:
+        for j in rang:
+            b = (i, i + bin_size - 1, j, j + bin_size - 1)
+            bins.append(b)
+            print("[{}, {}] - [{}, {}]".format(b[0], b[1], b[2], b[3]))
+
+    print(len(bins))
+    print(len(rang))
+
+    img_a = np.zeros((len(rang), len(rang)))
+    img_b = np.copy(img_a)
+
+    for idx, bounds in enumerate(bins):
+        a_min, a_max, b_min, b_max = bounds
+
+        a = a_min + (1/2 * bin_size)
+        b = b_min + (1/2 * bin_size)
+
+        img_a.flat[idx] = a
+        img_b.flat[idx] = b
+
+    img = np.ones((img_a.shape[0], img_a.shape[1], 3)) * 50
+    img[:, :, 1] = img_a
+    img[:, :, 2] = img_b
+
+    lab = img
+    rgb = custom_lab2rgb(lab)
+
+    print(lab)
+    print(rgb)
+
+    rgb_in_gamut = np.copy(rgb)
+
+    c = 0
+    t = 0
+    for i in range(0, rgb.shape[0]):
+        for j in range(0, rgb.shape[1]):
+            r, g, b = rgb[i, j, :]
+
+            print(r, g, b)
+
+            r_edge = r < 0 or r > 1
+            g_edge = g < 0 or g > 1
+            b_edge = b < 0 or b > 1
+
+            count = np.array([r_edge, g_edge, b_edge]).sum()
+
+            t += 1
+            if count >= 1:
+                c += 1
+                rgb_in_gamut[i, j, :] = (1, 1, 1)
+
+    print(c, t, c/t, t-c)
+    plot_img_converted(rgb, lambda x: rgb_in_gamut)
 
 
 def test_lab_conversion_scikit():
@@ -159,7 +232,7 @@ def test_rgb2lab2binned2rgb():
 
 
 def test_encoding():
-    img = _test_image()
+    img = _get_test_image()
     lab = convert_rgb_to_lab(img)
 
     print("rgb\n", img)
@@ -169,11 +242,11 @@ def test_encoding():
     print(r)
 
 
-
 def main():
     # test_lab_conversion_scikit()
     # test_rgb2lab2binned2rgb()
-    test_encoding()
+    # test_encoding()
+    test_lab_bounds()
     pass
 
 
