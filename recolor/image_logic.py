@@ -368,13 +368,8 @@ def main():
     # test_encoding()
     # test_lab_bounds()
     # test_lab_bounds_inverted()
-    result_numpy()
-    r = np.load("../np/fast_shit.npy")
-    s = set(r)
-    bin_ingamut = np.zeros(len(bins))
-    for i in s:
-        bin_ingamut[i] = 1
-    img = plot_ingamut(bins, bin_ingamut)
+    # result_numpy()
+
     pass
 
 
