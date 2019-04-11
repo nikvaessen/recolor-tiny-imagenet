@@ -266,34 +266,36 @@ def test_lab_bounds_inverted():
 
     rgb_tuples = []
 
-    for r in range(rgb_min, rgb_max):
+    for r in range(rgb_min, rgb_max + 1):
         print("\r{:3d} out of {}".format(r + 1, rgb_max), end="", flush=True)
-        for g in range(rgb_min, rgb_max):
-            for b in range(rgb_min, rgb_max):
+        for g in range(rgb_min, rgb_max + 1):
+            for b in range(rgb_min, rgb_max + 1):
                 rgb_tuples.append((r, g, b))
     print()
 
     total = len(rgb_tuples)
-    rgb = np.zeros((1, total, 3)).astype(np.int16)
+    rgb = np.zeros((1, total, 3))
 
     for idx, (r, g, b) in enumerate(rgb_tuples):
-        rgb[:, idx, :] = (r, g, b)
+        rgb[:, idx, :] = (r/255, g/255, b/255)
 
-    print("created rgb image")
+    print("created rgb image. dtype=", rgb.dtype)
+    for i in range(0, 3):
+        maxi = np.max(rgb[:, :, i])
+        mini = np.min(rgb[:, :, i])
+        print("channel {}, max={}, min={}".format(i, maxi, mini))
 
     lab = convert_rgb_to_lab(rgb)
+
+    print("created lab image. dtype=", lab.dtype)
+    for i in range(0, 3):
+        maxi = np.max(lab[:, :, i])
+        mini = np.min(lab[:, :, i])
+        print("channel {}, max={}, min={}".format(i, maxi, mini))
 
     print("converted to lab")
 
     bin_ingamut = np.zeros((len(bins)))
-
-    import multiprocessing
-    pool = multiprocessing.Pool(12)
-
-    def func():
-        pass
-
-    pool.map(func, lab)
 
     # these loops takes ~60 minutes on an i7
     for i in range(0, total):
@@ -302,16 +304,11 @@ def test_lab_bounds_inverted():
             print("\r{:7d} out of {}".format(i, total),
                   end="", flush=True)
 
-        # r, g, b_ = rgb[:, i, :].flat
         l, a, b = lab[:, i, :].flat
 
         l_edge = l < 0 or l > 100
         a_edge = a < lab_min or a > lab_max
         b_edge = b < lab_min or b > lab_max
-
-        # print()
-        # print("rgb: ", r, g, b_)
-        # print("lab: ", l, a, b)
 
         if l_edge or a_edge or b_edge:
             print("skipped")
