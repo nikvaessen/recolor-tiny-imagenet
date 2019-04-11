@@ -147,65 +147,93 @@ def _get_test_image():
 
 def test_lab_bounds():
     bin_size = lab_preferred_bin_size
-    rang = range(lab_min, lab_max, bin_size)
-
-    print(rang[-1])
+    ab_range = range(lab_min, lab_max, bin_size)
+    l_range = range(0, 101)
 
     bins = []
-    for i in rang:
-        for j in rang:
+
+    for i in ab_range:
+        for j in ab_range:
             b = (i, i + bin_size - 1, j, j + bin_size - 1)
             bins.append(b)
-            print("[{}, {}] - [{}, {}]".format(b[0], b[1], b[2], b[3]))
+            # print("[{}, {}] - [{}, {}]".format(b[0], b[1], b[2], b[3]))
 
-    print(len(bins))
-    print(len(rang))
+    bin_ingamut = np.zeros((len(bins)))
 
-    img_a = np.zeros((len(rang), len(rang)))
-    img_b = np.copy(img_a)
+    # print(len(bins))
+    # print(len(ab_range))
+
+    def in_gamut(r, g, b):
+        r_edge = r < 0 or r > 1
+        g_edge = g < 0 or g > 1
+        b_edge = b < 0 or b > 1
+
+        return not (r_edge or g_edge or b_edge)
 
     for idx, bounds in enumerate(bins):
+        print("bin {:3d} out of {}".format(idx + 1, len(bins)))
         a_min, a_max, b_min, b_max = bounds
 
-        a = a_min + (1/2 * bin_size)
-        b = b_min + (1/2 * bin_size)
+        img_a = np.zeros((bin_size, bin_size))
+        img_b = np.zeros(img_a.shape)
 
+        img_a[:, :] = np.array((range(a_min, a_max + 1)))
+        img_b[:, :] = np.array((range(b_min, b_max + 1)))
+        img_b = img_b.T
+
+        for l in l_range:
+            if bin_ingamut.flat[idx] == 1:
+                break
+
+            img_l = np.ones(img_a.shape) * l
+
+            img = np.zeros((img_l.shape[0], img_l.shape[1], 3))
+            img[:, :, 0] = img_l
+            img[:, :, 1] = img_a
+            img[:, :, 2] = img_b
+
+            rgb = custom_lab2rgb(img)
+
+            for i in range(0, rgb.shape[0]):
+                if bin_ingamut.flat[idx] == 1:
+                    break
+
+                for j in range(0, rgb.shape[1]):
+                    r, g, b = rgb[i, j, :]
+
+                    if in_gamut(r, g, b):
+                        bin_ingamut.flat[idx] = 1
+                        break
+
+    img_l = np.zeros((len(ab_range), len(ab_range)))
+    img_a = np.copy(img_l)
+    img_b = np.copy(img_l)
+
+    for idx, bounds in enumerate(bins):
+        if bin_ingamut[idx] == 0:
+            img_l.flat[idx] = 100
+            img_a.flat[idx] = 0
+            img_b.flat[idx] = 0
+            continue
+
+        a_min, a_max, b_min, b_max = bounds
+
+        a = a_min + (1 / 2 * bin_size)
+        b = b_min + (1 / 2 * bin_size)
+
+        img_l.flat[idx] = 50
         img_a.flat[idx] = a
         img_b.flat[idx] = b
 
-    img = np.ones((img_a.shape[0], img_a.shape[1], 3)) * 50
+    img = np.ones((img_a.shape[0], img_a.shape[1], 3))
+    img[:, :, 0] = img_l
     img[:, :, 1] = img_a
     img[:, :, 2] = img_b
 
-    lab = img
-    rgb = custom_lab2rgb(lab)
+    rgb_ingamut = convert_lab_to_rgb(img)
 
-    print(lab)
-    print(rgb)
-
-    rgb_in_gamut = np.copy(rgb)
-
-    c = 0
-    t = 0
-    for i in range(0, rgb.shape[0]):
-        for j in range(0, rgb.shape[1]):
-            r, g, b = rgb[i, j, :]
-
-            print(r, g, b)
-
-            r_edge = r < 0 or r > 1
-            g_edge = g < 0 or g > 1
-            b_edge = b < 0 or b > 1
-
-            count = np.array([r_edge, g_edge, b_edge]).sum()
-
-            t += 1
-            if count >= 1:
-                c += 1
-                rgb_in_gamut[i, j, :] = (1, 1, 1)
-
-    print(c, t, c/t, t-c)
-    plot_img_converted(rgb, lambda x: rgb_in_gamut)
+    print("bins ingamut: ", bin_ingamut.sum())
+    plot_image(rgb_ingamut)
 
 
 def test_lab_conversion_scikit():
