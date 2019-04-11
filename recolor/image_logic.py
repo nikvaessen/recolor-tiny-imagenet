@@ -12,7 +12,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from skimage import io, color
-from color import colorconv as color_custom
+# from color import colorconv as color_custom
 
 ################################################################################
 
@@ -24,6 +24,18 @@ lab_max = 127
 
 rgb_preferred_bin_size = 20
 lab_preferred_bin_size = 10
+
+bin_size = lab_preferred_bin_size
+ab_range = range(lab_min, lab_max, bin_size)
+l_range = range(0, 101)
+
+bins = []
+
+for i in ab_range:
+    for j in ab_range:
+        b = (i, i + bin_size, j, j + bin_size)
+        print(b)
+        bins.append(b)
 
 ################################################################################
 # image loading and display
@@ -242,28 +254,6 @@ def test_lab_bounds():
 
 
 def test_lab_bounds_inverted():
-    bin_size = lab_preferred_bin_size
-    ab_range = range(lab_min, lab_max, bin_size)
-
-    bins = []
-
-    for i in ab_range:
-        for j in ab_range:
-            b = (i, i + bin_size - 1, j, j + bin_size - 1)
-            bins.append(b)
-
-    dir = "../np/"
-    fn = "in_gamut.npy"
-    path = os.path.join(dir, fn)
-
-    if os.path.exists(path):
-        bin_ingamut = np.load(path)
-        plot_ingamut(bins, bin_ingamut)
-        return
-
-    if not os.path.exists(dir):
-        os.mkdir(dir)
-
     rgb_tuples = []
 
     for r in range(rgb_min, rgb_max + 1):
@@ -287,6 +277,11 @@ def test_lab_bounds_inverted():
 
     lab = convert_rgb_to_lab(rgb)
 
+    lab_tuples = []
+    for i in range(0, len(rgb_tuples)):
+        l, a, b = lab[:, i, :].flat
+        lab_tuples.append((l, a, b))
+
     print("created lab image. dtype=", lab.dtype)
     for i in range(0, 3):
         maxi = np.max(lab[:, :, i])
@@ -295,35 +290,34 @@ def test_lab_bounds_inverted():
 
     print("converted to lab")
 
-    bin_ingamut = np.zeros((len(bins)))
+    # Multithread the gamut-checking
+    import multiprocessing
 
-    # these loops takes ~60 minutes on an i7
-    for i in range(0, total):
-        if i % 100000 == 0:
-            np.save(path, bin_ingamut)
-            print("\r{:7d} out of {}".format(i, total),
-                  end="", flush=True)
+    pool = multiprocessing.Pool(12)
+    result = pool.map(func, lab_tuples)
 
-        l, a, b = lab[:, i, :].flat
+    print(result)
 
-        l_edge = l < 0 or l > 100
-        a_edge = a < lab_min or a > lab_max
-        b_edge = b < lab_min or b > lab_max
+    arr = np.array(result)
+    path = os.path.join("np", "fast_shit.npy")
+    np.save(path, arr)
 
-        if l_edge or a_edge or b_edge:
-            print("skipped")
-            continue
 
-        for idx, (a_min, a_max, b_min, b_max) in enumerate(bins):
-            if a_min < a < a_max and b_min < b < b_max:
-                bin_ingamut.flat[idx] = 1
-                # print("bin:", a_min, a_max, b_min, b_max)
-                # print()
-                break
+def func(lab_tuple):
+    l, a, b = lab_tuple
 
-    print()
-    np.save(path, bin_ingamut)
+    l_edge = l < 0 or l > 100
+    a_edge = a < lab_min or a > lab_max
+    b_edge = b < lab_min or b > lab_max
 
+    if l_edge or a_edge or b_edge:
+        return -1
+
+    for idx, (a_min, a_max, b_min, b_max) in enumerate(bins):
+        if a_min < a < a_max and b_min < b < b_max:
+            return idx
+
+    return -2, (l, a, b)
 
 def test_lab_conversion_scikit():
     img = read_image(test_image)
