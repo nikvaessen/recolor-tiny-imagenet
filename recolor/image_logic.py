@@ -98,6 +98,7 @@ def plot_ingamut(bins, bin_ingamut):
 
     print("bins ingamut: ", len(set(bin_ingamut)))
     plot_image(rgb_ingamut)
+    return(img)
 
 
 ################################################################################
@@ -153,12 +154,12 @@ def one_hot_encode_lab_img(img: np.ndarray,
                            binsize=lab_preferred_bin_size):
     bin = abs(lab_max - lab_min) // binsize
 
-    a = (img[:, :, 1] + 128)
-    print(a)
+    a = (img[:, :, 1] + abs(lab_min))
+    #print(a)
     a = a // binsize
-    print(a)
+    #print(a)
 
-    b = (img[:, :, 2] + 128) // binsize
+    b = (img[:, :, 2] + abs(lab_min)) // binsize
 
     return a * bin + b
 
@@ -368,9 +369,12 @@ def main():
     # test_lab_bounds()
     # test_lab_bounds_inverted()
     result_numpy()
-    r = np.load("../np/fast_shit.npy")    
-    plot_ingamut(bins, r)
-    
+    r = np.load("../np/fast_shit.npy")
+    s = set(r)
+    bin_ingamut = np.zeros(len(bins))
+    for i in s:
+        bin_ingamut[i] = 1
+    img = plot_ingamut(bins, bin_ingamut)
     pass
 
 
