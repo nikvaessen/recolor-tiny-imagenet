@@ -69,8 +69,8 @@ def plot_ingamut(bins, bin_ingamut):
     ab_range = range(lab_min, lab_max, bin_size)
 
     img_l = np.zeros((len(ab_range), len(ab_range)))
-    img_a = np.copy(img_l)
-    img_b = np.copy(img_l)
+    img_a = np.zeros((len(ab_range), len(ab_range)))
+    img_b = np.zeros((len(ab_range), len(ab_range)))
 
     for idx, bounds in enumerate(bins):
         if bin_ingamut[idx] == 0:
@@ -93,9 +93,10 @@ def plot_ingamut(bins, bin_ingamut):
     img[:, :, 1] = img_a
     img[:, :, 2] = img_b
 
+
     rgb_ingamut = convert_lab_to_rgb(img)
 
-    print("bins ingamut: ", bin_ingamut.sum())
+    print("bins ingamut: ", len(set(bin_ingamut)))
     plot_image(rgb_ingamut)
 
 
@@ -367,6 +368,9 @@ def main():
     # test_lab_bounds()
     # test_lab_bounds_inverted()
     result_numpy()
+    r = np.load("../np/fast_shit.npy")    
+    plot_ingamut(bins, r)
+    
     pass
 
 
