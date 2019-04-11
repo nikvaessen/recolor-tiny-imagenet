@@ -244,19 +244,6 @@ def test_lab_bounds():
 def test_lab_bounds_inverted():
     total = 255**3
 
-    rgb_all = np.zeros((1, total, 3))
-
-    count = 0
-    for r in range(rgb_min, rgb_max):
-        print("\r{:3d} out of {}".format(r+1, rgb_max), end="", flush=True)
-        for g in range(rgb_min, rgb_max):
-            for b in range(rgb_min, rgb_max):
-                rgb_all[:, count, :] = (r, g, b)
-                count += 1
-    print()
-
-    lab = convert_rgb_to_lab(rgb_all)
-
     bin_size = lab_preferred_bin_size
     ab_range = range(lab_min, lab_max, bin_size)
 
@@ -270,32 +257,46 @@ def test_lab_bounds_inverted():
     dir = "../np/"
     fn = "in_gamut.npy"
     path = os.path.join(dir, fn)
+
     if os.path.exists(path):
-        bin_ingamut = np.load(fn)
-    else:
-        if not os.path.exists(dir):
-            os.mkdir(dir)
+        bin_ingamut = np.load(path)
+        plot_ingamut(bins, bin_ingamut)
+        return
 
-        bin_ingamut = np.zeros((len(bins)))
+    if not os.path.exists(dir):
+        os.mkdir(dir)
 
-        # these loops takes ~60 minutes on an i7
-        for i in range(0, total):
-            if i % 100000 == 0:
-                np.save(path, bin_ingamut)
-                print("\r{:7d} out of {}".format(i, total),
-                      end="", flush=True)
+    rgb_all = np.zeros((1, total, 3))
 
-            l, a, b = lab[:, i, :].flat
+    count = 0
+    for r in range(rgb_min, rgb_max):
+        print("\r{:3d} out of {}".format(r + 1, rgb_max), end="", flush=True)
+        for g in range(rgb_min, rgb_max):
+            for b in range(rgb_min, rgb_max):
+                rgb_all[:, count, :] = (r, g, b)
+                count += 1
+    print()
 
-            for idx, (a_min, a_max, b_min, b_max) in enumerate(bins):
-                if a_min < a < a_max and b_min < b < b_max:
-                    bin_ingamut.flat[idx] = 1
-                    break
+    lab = convert_rgb_to_lab(rgb_all)
 
-        print()
-        np.save(path, bin_ingamut)
+    bin_ingamut = np.zeros((len(bins)))
 
-    plot_ingamut(bins, bin_ingamut)
+    # these loops takes ~60 minutes on an i7
+    for i in range(0, total):
+        if i % 100000 == 0:
+            np.save(path, bin_ingamut)
+            print("\r{:7d} out of {}".format(i, total),
+                  end="", flush=True)
+
+        l, a, b = lab[:, i, :].flat
+
+        for idx, (a_min, a_max, b_min, b_max) in enumerate(bins):
+            if a_min < a < a_max and b_min < b < b_max:
+                bin_ingamut.flat[idx] = 1
+                break
+
+    print()
+    np.save(path, bin_ingamut)
 
 
 def test_lab_conversion_scikit():
