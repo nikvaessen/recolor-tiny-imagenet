@@ -278,6 +278,7 @@ def test_lab_bounds_inverted():
 
         bin_ingamut = np.zeros((len(bins)))
 
+        # these loops takes ~60 minutes on an i7
         for i in range(0, total):
             if i % 100000 == 0:
                 np.save(path, bin_ingamut)
