@@ -12,9 +12,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from skimage import io, color
-# from color import colorconv as color_custom
 
 ################################################################################
+# constants related to the binning
 
 rgb_min = 0
 rgb_max = 255
@@ -25,17 +25,14 @@ lab_max = 127
 rgb_preferred_bin_size = 20
 lab_preferred_bin_size = 10
 
-bin_size = lab_preferred_bin_size
-ab_range = range(lab_min, lab_max, bin_size)
-l_range = range(0, 101)
+path_rgb_bin_indexes = "../np/rgb_bin_indexes.npz"
+path_bins = "../np/bins.npz"
 
-bins = []
-
-for i in ab_range:
-    for j in ab_range:
-        b = (i, i + bin_size, j, j + bin_size)
-        # print(b)
-        bins.append(b)
+if os.path.exists(path_bins):
+    bins = np.load(path_bins)['arr_0']
+else:
+    print("WARNING: ", path_bins, " was not found, some methods in ", __name__,
+          "will fail")
 
 ################################################################################
 # image loading and display
@@ -104,6 +101,19 @@ def plot_ingamut(bins, bin_ingamut):
 ################################################################################
 # converting, binning and encoding of bins as classes
 
+def _get_potential_bins():
+    bin_size = lab_preferred_bin_size
+    ab_range = range(lab_min, lab_max, bin_size)
+
+    bins = []
+
+    for i in ab_range:
+        for j in ab_range:
+            b = (i, i + bin_size - 1, j, j + bin_size - 1)
+            bins.append(b)
+
+    return bins
+
 
 def convert_rgb_to_lab(img):
     return color.rgb2lab(img)
@@ -111,10 +121,6 @@ def convert_rgb_to_lab(img):
 
 def convert_lab_to_rgb(img):
     return color.lab2rgb(img)
-
-
-def custom_lab2rgb(lab):
-    return color_custom.lab2rgb(lab, clip=False)
 
 
 def bin_rgb(x, binsize=rgb_preferred_bin_size):
@@ -203,6 +209,8 @@ def _get_test_image():
 
 
 def test_lab_bounds():
+    from color.colorconv import lab2rgb as custom_lab2rgb
+
     bin_size = lab_preferred_bin_size
     ab_range = range(lab_min, lab_max, bin_size)
     l_range = range(0, 101)
@@ -308,10 +316,9 @@ def test_lab_bounds_inverted():
     result = pool.map(func, lab_tuples)
 
     print(result)
-
     arr = np.array(result)
-    path = os.path.join("np", "fast_shit.npy")
-    np.save(path, arr)
+    path = path_rgb_bin_indexes
+    np.savez_compressed(path, arr)
 
 
 def func(lab_tuple):
@@ -329,6 +336,7 @@ def func(lab_tuple):
             return idx
 
     return -2, (l, a, b)
+
 
 def test_lab_conversion_scikit():
     img = read_image(test_image)
@@ -364,11 +372,41 @@ def test_encoding():
     print(r)
 
 
-def result_numpy():
-    r = np.load("../np/fast_shit.npy")
+def create_bin_numpy_file():
+    path = path_rgb_bin_indexes
+
+    if not os.path.exists(path):
+        print("place rgb_bin_indexes into ../np/ ( by running t"
+              "est_lab_bounds_inverted() )")
+        return
+
+    r = np.load(path)['arr_0']
+
+    print(r)
     print(r.shape)
     print(np.unique(r).shape)
     print(np.max(r), np.min(r))
+    potential_bins = _get_potential_bins()
+
+    indexes = np.unique(r).flat
+    bins = []
+
+    for idx in indexes:
+        print(potential_bins[idx])
+        bins.append(potential_bins[idx])
+
+    np.savez_compressed(path_bins, bins)
+    np.savez_compressed(path_rgb_bin_indexes, r)
+
+
+def test_bins():
+    for b in bins:
+        print(b)
+
+
+def merlin_random_code():
+    bin_ingamut = ingamut_bins()
+    img = plot_ingamut(bins, bin_ingamut)
 
 
 def main():
@@ -377,12 +415,10 @@ def main():
     # test_encoding()
     # test_lab_bounds()
     # test_lab_bounds_inverted()
-    result_numpy()
-    bin_ingamut = ingamut_bins()
-    img = plot_ingamut(bins, bin_ingamut)
+    # create_bin_numpy_file()
+    test_bins()
     pass
 
 
-    
 if __name__ == '__main__':
     main()
