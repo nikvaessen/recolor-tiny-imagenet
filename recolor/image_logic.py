@@ -6,15 +6,13 @@
 ################################################################################
 
 import math
+import os
 
 import numpy as np
 import matplotlib.pyplot as plt
 
 from skimage import io, color
 from color import colorconv as color_custom
-
-from scipy import linalg
-
 
 ################################################################################
 
@@ -52,6 +50,42 @@ def plot_img_converted(img, converter):
     plt.imshow(converter(img))
 
     plt.show()
+
+
+def plot_ingamut(bins, bin_ingamut):
+    bin_size = lab_preferred_bin_size
+    ab_range = range(lab_min, lab_max, bin_size)
+
+    img_l = np.zeros((len(ab_range), len(ab_range)))
+    img_a = np.copy(img_l)
+    img_b = np.copy(img_l)
+
+    for idx, bounds in enumerate(bins):
+        if bin_ingamut[idx] == 0:
+            img_l.flat[idx] = 100
+            img_a.flat[idx] = 0
+            img_b.flat[idx] = 0
+            continue
+
+        a_min, a_max, b_min, b_max = bounds
+
+        a = a_min + (1 / 2 * bin_size)
+        b = b_min + (1 / 2 * bin_size)
+
+        img_l.flat[idx] = 50
+        img_a.flat[idx] = a
+        img_b.flat[idx] = b
+
+    img = np.ones((img_a.shape[0], img_a.shape[1], 3))
+    img[:, :, 0] = img_l
+    img[:, :, 1] = img_a
+    img[:, :, 2] = img_b
+
+    rgb_ingamut = convert_lab_to_rgb(img)
+
+    print("bins ingamut: ", bin_ingamut.sum())
+    plot_image(rgb_ingamut)
+
 
 ################################################################################
 # converting, binning and encoding of bins as classes
@@ -156,7 +190,6 @@ def test_lab_bounds():
         for j in ab_range:
             b = (i, i + bin_size - 1, j, j + bin_size - 1)
             bins.append(b)
-            # print("[{}, {}] - [{}, {}]".format(b[0], b[1], b[2], b[3]))
 
     bin_ingamut = np.zeros((len(bins)))
 
@@ -205,35 +238,63 @@ def test_lab_bounds():
                         bin_ingamut.flat[idx] = 1
                         break
 
-    img_l = np.zeros((len(ab_range), len(ab_range)))
-    img_a = np.copy(img_l)
-    img_b = np.copy(img_l)
+        plot_ingamut(bin_ingamut)
 
-    for idx, bounds in enumerate(bins):
-        if bin_ingamut[idx] == 0:
-            img_l.flat[idx] = 100
-            img_a.flat[idx] = 0
-            img_b.flat[idx] = 0
-            continue
 
-        a_min, a_max, b_min, b_max = bounds
+def test_lab_bounds_inverted():
+    total = 255**3
 
-        a = a_min + (1 / 2 * bin_size)
-        b = b_min + (1 / 2 * bin_size)
+    rgb_all = np.zeros((1, total, 3))
 
-        img_l.flat[idx] = 50
-        img_a.flat[idx] = a
-        img_b.flat[idx] = b
+    count = 0
+    for r in range(rgb_min, rgb_max):
+        print("\r{:3d} out of {}".format(r+1, rgb_max), end="", flush=True)
+        for g in range(rgb_min, rgb_max):
+            for b in range(rgb_min, rgb_max):
+                rgb_all[:, count, :] = (r, g, b)
+                count += 1
+    print()
 
-    img = np.ones((img_a.shape[0], img_a.shape[1], 3))
-    img[:, :, 0] = img_l
-    img[:, :, 1] = img_a
-    img[:, :, 2] = img_b
+    lab = convert_rgb_to_lab(rgb_all)
 
-    rgb_ingamut = convert_lab_to_rgb(img)
+    bin_size = lab_preferred_bin_size
+    ab_range = range(lab_min, lab_max, bin_size)
 
-    print("bins ingamut: ", bin_ingamut.sum())
-    plot_image(rgb_ingamut)
+    bins = []
+
+    for i in ab_range:
+        for j in ab_range:
+            b = (i, i + bin_size - 1, j, j + bin_size - 1)
+            bins.append(b)
+
+    dir = "../np/"
+    fn = "in_gamut.npy"
+    path = os.path.join(dir, fn)
+    if os.path.exists(path):
+        bin_ingamut = np.load(fn)
+    else:
+        if not os.path.exists(dir):
+            os.mkdir(dir)
+
+        bin_ingamut = np.zeros((len(bins)))
+
+        for i in range(0, total):
+            if i % 100000 == 0:
+                np.save(path, bin_ingamut)
+                print("\r{:7d} out of {}".format(i, total),
+                      end="", flush=True)
+
+            l, a, b = lab[:, i, :].flat
+
+            for idx, (a_min, a_max, b_min, b_max) in enumerate(bins):
+                if a_min < a < a_max and b_min < b < b_max:
+                    bin_ingamut.flat[idx] = 1
+                    break
+
+        print()
+        np.save(path, bin_ingamut)
+
+    plot_ingamut(bins, bin_ingamut)
 
 
 def test_lab_conversion_scikit():
@@ -274,7 +335,8 @@ def main():
     # test_lab_conversion_scikit()
     # test_rgb2lab2binned2rgb()
     # test_encoding()
-    test_lab_bounds()
+    # test_lab_bounds()
+    test_lab_bounds_inverted()
     pass
 
 
