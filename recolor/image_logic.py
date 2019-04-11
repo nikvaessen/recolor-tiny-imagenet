@@ -122,6 +122,15 @@ def bin_rgb(x, binsize=rgb_preferred_bin_size):
                                 + (binsize // 2)).astype(np.int16))
 
 
+""" Loads the last version of our computed in gamut bins and returns an array with boolean values for all in gamut bins """
+def ingamut_bins():
+    r = np.load("../np/fast_shit.npy")
+    s = set(r)
+    bin_ingamut = np.zeros(len(bins))
+    for i in s:
+        bin_ingamut[i] = 1
+    return bin_ingamut
+
 def one_hot_encode_rgb_img(img: np.ndarray,
                            binsize=rgb_preferred_bin_size) -> np.ndarray:
     # potential improvement: do a batch of images at the same time
@@ -368,10 +377,12 @@ def main():
     # test_encoding()
     # test_lab_bounds()
     # test_lab_bounds_inverted()
-    # result_numpy()
-
+    result_numpy()
+    bin_ingamut = ingamut_bins()
+    img = plot_ingamut(bins, bin_ingamut)
     pass
 
 
+    
 if __name__ == '__main__':
     main()
