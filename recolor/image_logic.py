@@ -5,7 +5,6 @@
 # author(s): Nik Vaessen, Merlin Sewina
 ################################################################################
 
-import math
 import os
 
 import numpy as np
@@ -109,7 +108,7 @@ def _get_potential_bins():
 
     for i in ab_range:
         for j in ab_range:
-            b = (i, i + bin_size - 1, j, j + bin_size - 1)
+            b = (i, i + bin_size, j, j + bin_size)
             bins.append(b)
 
     return bins
@@ -128,7 +127,6 @@ def bin_rgb(x, binsize=rgb_preferred_bin_size):
                                 + (binsize // 2)).astype(np.int16))
 
 
-
 def one_hot_encode_rgb_img(img: np.ndarray,
                            binsize=rgb_preferred_bin_size) -> np.ndarray:
     # potential improvement: do a batch of images at the same time
@@ -145,14 +143,42 @@ def soft_encode_rgb_img(img, n=5, binsize=rgb_preferred_bin_size):
     raise NotImplementedError()
 
 
-def bin_lab(img, binsize=lab_preferred_bin_size):
+def bin_lab_slow(img, bins=bins):
     c = img[:, :, 1:]
 
-    binned_color = ((c // binsize) * binsize) + (binsize // 2)
-    binned_color = np.minimum(lab_max, binned_color)
-    binned_color = np.maximum(lab_min, binned_color)
+    c_binned = np.copy(c)
 
-    img[:, :, 1:] = binned_color
+    for i in range(c.shape[0]):
+        print("\r{} out of {}".format(i, c.shape[0]))
+        for j in range(c.shape[1]):
+            a, b = c[i, j, :].flat
+
+            found = False
+            for a_min, a_max, b_min, b_max in bins:
+                if a_min < a < a_max and b_min < b < b_max:
+                    a = a_min + 1/2 * lab_preferred_bin_size
+                    b = b_min + 1/2 * lab_preferred_bin_size
+                    c_binned[i, j, :] = (a, b)
+                    found = True
+
+            if not found:
+                raise ValueError("unable to bin {} and {}".format(a, b))
+
+    img[:, :, 1:] = c_binned
+
+    return img
+
+
+def bin_lab(img):
+    c = np.copy(img[:, :, 1:])
+    sign = c >= 0
+
+    np.floor_divide(c, lab_preferred_bin_size, out=c)
+    np.multiply(c, lab_preferred_bin_size, out=c)
+    np.add(c, lab_preferred_bin_size/2, out=c, where=(c >= 0))
+    np.subtract(c, lab_preferred_bin_size/2, out=c, where=~sign)
+
+    img[:, :, 1:] = c
 
     return img
 
@@ -395,6 +421,20 @@ def test_bins():
     for b in bins:
         print(b)
     print("length: ", len(bins))
+
+    img = read_image(test_image)
+    print(".jpeg read", img.shape, img.dtype, np.max(img), np.min(img))
+
+    lab = convert_rgb_to_lab(img)
+    print("lab", lab.shape, lab.dtype, np.max(lab), np.min(lab))
+    binned = bin_lab(lab)
+
+    l_equal = lab[:, :, 0] == binned[:, :, 0]
+    print(l_equal.all())
+
+    rgb = convert_lab_to_rgb(binned)
+
+    plot_img_converted(img, lambda x: rgb)
 
 
 def main():
