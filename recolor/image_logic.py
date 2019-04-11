@@ -34,7 +34,7 @@ bins = []
 for i in ab_range:
     for j in ab_range:
         b = (i, i + bin_size, j, j + bin_size)
-        print(b)
+        # print(b)
         bins.append(b)
 
 ################################################################################
@@ -353,12 +353,20 @@ def test_encoding():
     print(r)
 
 
+def result_numpy():
+    r = np.load("../np/fast_shit.npy")
+    print(r.shape)
+    print(np.unique(r).shape)
+    print(np.max(r), np.min(r))
+
+
 def main():
     # test_lab_conversion_scikit()
     # test_rgb2lab2binned2rgb()
     # test_encoding()
     # test_lab_bounds()
-    test_lab_bounds_inverted()
+    # test_lab_bounds_inverted()
+    result_numpy()
     pass
 
 
