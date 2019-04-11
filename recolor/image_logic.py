@@ -238,12 +238,10 @@ def test_lab_bounds():
                         bin_ingamut.flat[idx] = 1
                         break
 
-        plot_ingamut(bin_ingamut)
+        plot_ingamut(bins, bin_ingamut)
 
 
 def test_lab_bounds_inverted():
-    total = 255**3
-
     bin_size = lab_preferred_bin_size
     ab_range = range(lab_min, lab_max, bin_size)
 
@@ -266,20 +264,36 @@ def test_lab_bounds_inverted():
     if not os.path.exists(dir):
         os.mkdir(dir)
 
-    rgb_all = np.zeros((1, total, 3))
+    rgb_tuples = []
 
-    count = 0
     for r in range(rgb_min, rgb_max):
         print("\r{:3d} out of {}".format(r + 1, rgb_max), end="", flush=True)
         for g in range(rgb_min, rgb_max):
             for b in range(rgb_min, rgb_max):
-                rgb_all[:, count, :] = (r, g, b)
-                count += 1
+                rgb_tuples.append((r, g, b))
     print()
 
-    lab = convert_rgb_to_lab(rgb_all)
+    total = len(rgb_tuples)
+    rgb = np.zeros((1, total, 3)).astype(np.int16)
+
+    for idx, (r, g, b) in enumerate(rgb_tuples):
+        rgb[:, idx, :] = (r, g, b)
+
+    print("created rgb image")
+
+    lab = convert_rgb_to_lab(rgb)
+
+    print("converted to lab")
 
     bin_ingamut = np.zeros((len(bins)))
+
+    import multiprocessing
+    pool = multiprocessing.Pool(12)
+
+    def func():
+        pass
+
+    pool.map(func, lab)
 
     # these loops takes ~60 minutes on an i7
     for i in range(0, total):
@@ -288,11 +302,26 @@ def test_lab_bounds_inverted():
             print("\r{:7d} out of {}".format(i, total),
                   end="", flush=True)
 
+        # r, g, b_ = rgb[:, i, :].flat
         l, a, b = lab[:, i, :].flat
+
+        l_edge = l < 0 or l > 100
+        a_edge = a < lab_min or a > lab_max
+        b_edge = b < lab_min or b > lab_max
+
+        # print()
+        # print("rgb: ", r, g, b_)
+        # print("lab: ", l, a, b)
+
+        if l_edge or a_edge or b_edge:
+            print("skipped")
+            continue
 
         for idx, (a_min, a_max, b_min, b_max) in enumerate(bins):
             if a_min < a < a_max and b_min < b < b_max:
                 bin_ingamut.flat[idx] = 1
+                # print("bin:", a_min, a_max, b_min, b_max)
+                # print()
                 break
 
     print()
