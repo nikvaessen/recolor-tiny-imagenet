@@ -204,14 +204,22 @@ def one_hot_encode_lab_img(img: np.ndarray,
     return a * bin + b
 
 """Given a lab image returns a soft encoding per pixel"""
-def soft_encode_lab_img(img: np.ndarray, binsize=lab_preferred_bin_size, bincenters=bincenters = ):
+def soft_encode_lab_img(img: np.ndarray, binsize=lab_preferred_bin_size, bincenters=bincenters):
+    inGamutBinAmount = len(bincenters)
+
     # using np operations ->
     # get a,b values as array
+    a = (img[:,:,1]).flatten()
+    b = (img[:,:,2]).flatten()
+    ab = np.stack((a,b),axis=-1)
+    print(img.shape)
+    print(ab)
     # calculate distance to all bin centers per pixel
 
     # per pixel
     # 5 times, select min distance, remeber distance and bin index, set this bins distance to high number
     # set index of remeberd bins to bindistance/sumbindistance
+    # gaussian kernel thingy?!
     return ''
 
 
@@ -481,6 +489,7 @@ def main():
     # create_bin_numpy_file()
     # create_bin_center_file()
     # test_bins()
+    soft_encode_lab_img(read_image(test_image))
 
     pass
 
