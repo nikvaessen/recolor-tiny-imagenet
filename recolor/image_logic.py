@@ -25,12 +25,19 @@ rgb_preferred_bin_size = 20
 lab_preferred_bin_size = 10
 
 path_rgb_bin_indexes = "../np/rgb_bin_indexes.npz"
+path_bincenters = "../np/bincenters.npz" 
 path_bins = "../np/bins.npz"
 
 if os.path.exists(path_bins):
     bins = np.load(path_bins)['arr_0']
 else:
     print("WARNING: ", path_bins, " was not found, some methods in ", __name__,
+          "will fail")
+
+if os.path.exists(path_bincenters):
+    bincenters = np.load(path_bincenters)['arr_0']
+else:
+    print("WARNING: ", path_bincenters, " was not found, some methods in ", __name__,
           "will fail")
 
 ################################################################################
@@ -197,16 +204,6 @@ def one_hot_encode_lab_img(img: np.ndarray,
     return a * bin + b
 
 # TODO MERLIN
-
-def generate_bin_centers(bins: np.ndarray):
-    for b in bins:
-        amin = b[0]
-        amax = b[1]
-        bmin = b[2]
-        bmax = b[3]
-    return ''
-
-
 def soft_encode_lab_img(img: np.ndarray, binsize=lab_preferred_bin_size):
     return ''
 
@@ -404,6 +401,22 @@ def test_encoding():
     print(r)
 
 
+"""Calculate the bin centers and save them"""
+def create_bin_center_file():
+    result = []
+    for b in bins:
+        amin = b[0]
+        amax = b[1]
+        bmin = b[2]
+        bmax = b[3]
+        aavg = (amin+amax) // 2
+        bavg = (bmin+bmax) // 2
+        result.append([aavg,bavg])
+
+    arr = np.array(result)
+    path = path_bincenters
+    np.savez_compressed(path, arr)
+
 def create_bin_numpy_file():
     path = path_rgb_bin_indexes
 
@@ -459,7 +472,9 @@ def main():
     # test_lab_bounds()
     # test_lab_bounds_inverted()
     # create_bin_numpy_file()
-    test_bins()
+    # create_bin_center_file()
+    # test_bins()
+
     pass
 
 
