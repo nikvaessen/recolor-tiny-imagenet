@@ -212,11 +212,6 @@ def soft_encode_lab_img(img: np.ndarray, binsize=lab_preferred_bin_size, bincent
     # get a,b values as array
     a = (img[:,:,1]).flatten()
     b = (img[:,:,2]).flatten()
-
-    # test
-    a = a[:4096]
-    b = b[:4096]
-    # test end
     
     ab = np.stack((a,b),axis=-1)
     temp_results = []
