@@ -253,6 +253,7 @@ def soft_encode_lab_img(img: np.ndarray,
         for i in range(0, num):
             bins_prob_dist[ind[i, pixel_column]] = val[i, pixel_column]
 
+        # this step is actually stupid and needs to be fixed
         bins_prob_dist /= bins_prob_dist.sum()
 
         results.append(bins_prob_dist)
