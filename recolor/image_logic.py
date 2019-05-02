@@ -517,7 +517,6 @@ def main():
     # create_bin_numpy_file()
     # create_bin_center_file()
     # test_bins()
-    soft_encode_lab_img(read_image(test_image))
 
     pass
 
