@@ -204,25 +204,56 @@ def one_hot_encode_lab_img(img: np.ndarray,
     return a * bin + b
 
 """Given a lab image returns a soft encoding per pixel"""
+"""current version takes about 7 sec per 64*64 image """
 def soft_encode_lab_img(img: np.ndarray, binsize=lab_preferred_bin_size, bincenters=bincenters):
     inGamutBinAmount = len(bincenters)
 
     # using np operations ->
     # get a,b values as array
+    a = (img[:,:,1]).flatten()
+    b = (img[:,:,2]).flatten()
 
-    a = (img[:, :, 1]).flatten()
-    b = (img[:, :, 2]).flatten()
-    ab = np.stack((a, b),axis=-1)
-    print(img.shape)
-    print(ab)
-
+    # test
+    a = a[:4096]
+    b = b[:4096]
+    # test end
+    
+    ab = np.stack((a,b),axis=-1)
+    temp_results = []
     # calculate distance to all bin centers per pixel
+    """ TODO CAN PROBABLY BE OPTIMIZED """
+    for pixel in ab:
+        distances = []
+        for c in bincenters:
+            # eucledian distance
+            d = np.linalg.norm(pixel-c)
+            distances.append(d)
+        tempD = []
 
-    # per pixel
+    """ TODO I have not idea how to optimize that shit, like really"""
     # 5 times, select min distance, remeber distance and bin index, set this bins distance to high number
+        for i in range(5):
+            min_d = min(distances)
+            min_d_inx = distances.index(min_d)
+            tempD.append([min_d,min_d_inx])
+            distances[min_d_inx] = 10000
+        temp_results.append(tempD)
+
+    """ Should be fast enough but If someone has better idea, feel free to change """
     # set index of remeberd bins to bindistance/sumbindistance
+    results = []
+    for v in temp_results:
+        fY = np.zeros(len(bins))
+        vsum = 0.0
+        for x in v:
+            vsum += x[0]
+        for x in v:
+            fY[x[1]] = float(x[0]) / vsum
+        results.append(fY)
+
     # gaussian kernel thingy?!
-    return ''
+    # TODO
+    return results
 
 
 ###############################################################################
