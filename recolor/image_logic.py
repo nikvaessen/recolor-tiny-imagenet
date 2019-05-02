@@ -225,7 +225,7 @@ def soft_encode_lab_img(img: np.ndarray, binsize=lab_preferred_bin_size, bincent
             distances.append(d)
         tempD = []
 
-    """ TODO I have not idea how to optimize that shit, like really"""
+    # TODO I have not idea how to optimize that shit, like really
     # 5 times, select min distance, remeber distance and bin index, set this bins distance to high number
         for i in range(5):
             min_d = min(distances)
