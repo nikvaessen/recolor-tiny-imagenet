@@ -210,29 +210,23 @@ def soft_encode_lab_img(img: np.ndarray, binsize=lab_preferred_bin_size, bincent
 
     # using np operations ->
     # get a,b values as array
-    a = (img[:,:,1]).flatten()
-    b = (img[:,:,2]).flatten()
+    a = (img[:, :, 1]).flatten()
+    b = (img[:, :, 2]).flatten()
     
-    ab = np.stack((a,b),axis=-1)
+    ab = np.stack((a, b), axis=-1)
     temp_results = []
     # calculate distance to all bin centers per pixel
     """ TODO CAN PROBABLY BE OPTIMIZED """
     for pixel in ab:
         distances = []
-        for c in bincenters:
-            # eucledian distance
-            d = np.linalg.norm(pixel-c)
-            distances.append(d)
-        tempD = []
 
-    # TODO I have not idea how to optimize that shit, like really
-    # 5 times, select min distance, remeber distance and bin index, set this bins distance to high number
-        for i in range(5):
-            min_d = min(distances)
-            min_d_inx = distances.index(min_d)
-            tempD.append([min_d,min_d_inx])
-            distances[min_d_inx] = 10000
-        temp_results.append(tempD)
+        for idx, c in enumerate(bincenters):
+            # euclidean distance
+            d = np.linalg.norm(pixel-c)
+            distances.append((d, idx))
+
+        distances = sorted(distances)
+        temp_results.append(distances[:5])
 
     """ Should be fast enough but If someone has better idea, feel free to change """
     # set index of remeberd bins to bindistance/sumbindistance
