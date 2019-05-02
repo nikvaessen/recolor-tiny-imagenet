@@ -217,26 +217,41 @@ def soft_encode_lab_img(img: np.ndarray,
     ab = np.stack((a, b), axis=-1)
     temp_results = []
     # calculate distance to all bin centers per pixel
-    """ TODO CAN PROBABLY BE OPTIMIZED """
-    for pixel in ab:
-        distances = []
+    # """ TODO CAN PROBABLY BE OPTIMIZED """
+    # for pixel in ab:
+    #     distances = []
+    #
+    #     for idx, c in enumerate(bincenters):
+    #         # euclidean distance
+    #         d = np.linalg.norm(pixel-c)
+    #         distances.append((d, idx))
+    #
+    #     distances = sorted(distances)
+    #     temp_results.append(distances[:5])
 
-        for idx, c in enumerate(bincenters):
-            # euclidean distance
-            d = np.linalg.norm(pixel-c)
-            distances.append((d, idx))
+    d = np.zeros((len(bincenters), ab.shape[0]))
+    for idx, c in enumerate(bincenters):
+        dist = np.linalg.norm(ab - c, axis=-1)
+        d[idx, :] = dist
 
-        distances = sorted(distances)
-        temp_results.append(distances[:5])
+    print(d)
+
+    num = 5
+    ind = np.argpartition(d, -num, axis=0)[:num, :]
+    val = np.take(d, ind)
+
+    print(d.shape)
+    print(ind.shape)
+    print(val.shape)
 
     """ Should be fast enough but if someone has better idea, feel free to change """
     # set index of remembered bins to bindistance/sumbindistance
     results = []
-    for best_bins_list in temp_results:
+    for pixel_column in range(0, ind.shape[1]):
         bins_prob_dist = np.zeros(len(bins))
 
-        for dist, idx in best_bins_list:
-            bins_prob_dist[idx] = dist
+        for i in range(0, num):
+            bins_prob_dist[ind[i, pixel_column]] = val[i, pixel_column]
 
         bins_prob_dist /= bins_prob_dist.sum()
 
@@ -511,14 +526,51 @@ def test_lab_5encode():
     import time
 
     img = transform.resize(img, (64, 64))
+    lab = convert_rgb_to_lab(img)
 
     start = time.time()
-    r = soft_encode_lab_img(img)
+    r = soft_encode_lab_img(lab)
     end = time.time()
 
-    print(r[0])
     print("time", end-start, "seconds")
-    pass
+
+    result = r[0]
+    colors = []
+
+    for idx in range(0, result.shape[0]):
+        v = result[idx]
+        if v > 0:
+            c = bincenters[idx]
+            colors.append(c)
+
+    print(colors)
+
+    image = np.ones((5, 3, 3)) * 50
+    image[0, 0, 1:] = colors[0]
+    image[1, 0, 1:] = colors[1]
+    image[2, 0, 1:] = colors[2]
+    image[3, 0, 1:] = colors[3]
+    image[4, 0, 1:] = colors[4]
+
+    image[0, 1, 1:] = lab[0, 0, 1:]
+    image[1, 1, 1:] = lab[0, 0, 1:]
+    image[2, 1, 1:] = lab[0, 0, 1:]
+    image[3, 1, 1:] = lab[0, 0, 1:]
+    image[4, 1, 1:] = lab[0, 0, 1:]
+
+    image[0, 2, 1:] = bincenters[78]
+    image[1, 2, 1:] = bincenters[95]
+    image[2, 2, 1:] = bincenters[96]
+    image[3, 2, 1:] = bincenters[111]
+    image[4, 2, 1:] = bincenters[112]
+
+    rgb = convert_lab_to_rgb(image)
+
+    plot_image(img)
+    # plot_image(lab)
+    plot_image(rgb)
+
+    binned_img = bin_lab()
 
 
 def main():
