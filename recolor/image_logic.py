@@ -138,7 +138,7 @@ def one_hot_encode_rgb_img(img: np.ndarray,
 
     return r * bin**2 + g * bin + b
 
-
+# depricated
 def soft_encode_rgb_img(img, n=5, binsize=rgb_preferred_bin_size):
     raise NotImplementedError()
 
@@ -195,6 +195,20 @@ def one_hot_encode_lab_img(img: np.ndarray,
     b = (img[:, :, 2] + abs(lab_min)) // binsize
 
     return a * bin + b
+
+# TODO MERLIN
+
+def generate_bin_centers(bins: np.ndarray):
+    for b in bins:
+        amin = b[0]
+        amax = b[1]
+        bmin = b[2]
+        bmax = b[3]
+    return ''
+
+
+def soft_encode_lab_img(img: np.ndarray, binsize=lab_preferred_bin_size):
+    return ''
 
 
 ###############################################################################
@@ -418,6 +432,7 @@ def create_bin_numpy_file():
 
 
 def test_bins():
+    print(type(bins))
     for b in bins:
         print(b)
     print("length: ", len(bins))
