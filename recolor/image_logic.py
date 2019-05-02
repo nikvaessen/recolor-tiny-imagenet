@@ -212,8 +212,6 @@ def soft_encode_lab_img(img: np.ndarray, binsize=lab_preferred_bin_size, bincent
     a = (img[:,:,1]).flatten()
     b = (img[:,:,2]).flatten()
     ab = np.stack((a,b),axis=-1)
-    print(img.shape)
-    print(ab)
     # calculate distance to all bin centers per pixel
 
     # per pixel
