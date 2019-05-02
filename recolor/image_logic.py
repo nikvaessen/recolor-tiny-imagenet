@@ -154,9 +154,9 @@ def bin_lab_slow(img, bins=bins):
     c = img[:, :, 1:]
 
     c_binned = np.copy(c)
-
+    
     for i in range(c.shape[0]):
-        print("\r{} out of {}".format(i, c.shape[0]))
+        #print("\r{} out of {}".format(i, c.shape[0]))
         for j in range(c.shape[1]):
             a, b = c[i, j, :].flat
 
@@ -216,28 +216,15 @@ def soft_encode_lab_img(img: np.ndarray,
 
     ab = np.stack((a, b), axis=-1)
     temp_results = []
-    # calculate distance to all bin centers per pixel
-    # """ TODO CAN PROBABLY BE OPTIMIZED """
-    # for pixel in ab:
-    #     distances = []
-    #
-    #     for idx, c in enumerate(bincenters):
-    #         # euclidean distance
-    #         d = np.linalg.norm(pixel-c)
-    #         distances.append((d, idx))
-    #
-    #     distances = sorted(distances)
-    #     temp_results.append(distances[:5])
 
     d = np.zeros((len(bincenters), ab.shape[0]))
     for idx, c in enumerate(bincenters):
         dist = np.linalg.norm(ab - c, axis=-1)
         d[idx, :] = dist
 
-    print(d)
-
     num = 5
-    ind = np.argpartition(d, -num, axis=0)[:num, :]
+    ind = np.argsort(d, axis=0)[:num, :]
+    print(ind)
     val = np.take(d, ind)
 
     print(d.shape)
@@ -546,8 +533,16 @@ def test_lab_5encode():
         if v > 0:
             c = bincenters[idx]
             colors.append(c)
-
+    nbin = []
+    for v in r:
+        i = np.where( v==np.min(v[np.nonzero(v)]))
+        nbin.append(bincenters[i[0][0]])
     print(colors)
+
+    bimg = np.ones((64,64,3))*50
+    for x in range(64):
+        for y in range(64):
+            bimg[x,y,1:] = nbin[(x*63)+y]
 
     image = np.ones((5, 4, 3)) * 50
     image[0, 0, 1:] = colors[0]
@@ -567,7 +562,7 @@ def test_lab_5encode():
     image[2, 2, 1:] = binned_img[0, 0, 1:]
     image[3, 2, 1:] = binned_img[0, 0, 1:]
     image[4, 2, 1:] = binned_img[0, 0, 1:]
-
+    
     image[0, 3, 1:] = bincenters[78]
     image[1, 3, 1:] = bincenters[95]
     image[2, 3, 1:] = bincenters[96]
@@ -575,6 +570,7 @@ def test_lab_5encode():
     image[4, 3, 1:] = bincenters[112]
 
     rgb = convert_lab_to_rgb(image)
+    rgb2 = convert_lab_to_rgb(bimg)
     
 
         
@@ -583,6 +579,8 @@ def test_lab_5encode():
     #plot_image(binned_img)
     # plot_image(lab)
     plot_image(rgb)
+    plot_image(img)
+    plot_image(rgb2)
     
 
 
