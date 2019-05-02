@@ -1,3 +1,10 @@
+################################################################################
+# Utility methods related to Data generator
+# required to generate the data batches at training time
+#
+# author(s): Jade Cock
+################################################################################
+
 from skimage import io, color
 import os
 import numpy as np
@@ -7,7 +14,6 @@ import pickle
 class DataGenerator:
     def __init__(self, list_IDs, batch_size=32, dim_in=(64 * 64, 1), dim_out = (64 * 64), n_channels_in=1, n_channels_out=3,
              shuffle=True):
-
         self.dim_in = dim_in
         self.dim_out = dim_out
         self.batch_size = batch_size
