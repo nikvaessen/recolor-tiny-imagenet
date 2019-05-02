@@ -162,7 +162,7 @@ def bin_lab_slow(img, bins=bins):
 
             found = False
             for a_min, a_max, b_min, b_max in bins:
-                if a_min < a < a_max and b_min < b < b_max:
+                if a_min <= a <= a_max and b_min <= b <= b_max:
                     a = a_min + 1/2 * lab_preferred_bin_size
                     b = b_min + 1/2 * lab_preferred_bin_size
                     c_binned[i, j, :] = (a, b)
@@ -522,11 +522,11 @@ def test_bins():
 
 def test_lab_5encode():
     img = read_image(test_image)
-
     import time
 
     img = transform.resize(img, (64, 64))
     lab = convert_rgb_to_lab(img)
+    
 
     start = time.time()
     r = soft_encode_lab_img(lab)
@@ -536,6 +536,9 @@ def test_lab_5encode():
 
     result = r[0]
     colors = []
+    binned_img = bin_lab_slow(lab)
+    binned_img = convert_lab_to_rgb(binned_img)
+
 
     for idx in range(0, result.shape[0]):
         v = result[idx]
@@ -545,7 +548,7 @@ def test_lab_5encode():
 
     print(colors)
 
-    image = np.ones((5, 3, 3)) * 50
+    image = np.ones((5, 4, 3)) * 50
     image[0, 0, 1:] = colors[0]
     image[1, 0, 1:] = colors[1]
     image[2, 0, 1:] = colors[2]
@@ -558,19 +561,29 @@ def test_lab_5encode():
     image[3, 1, 1:] = lab[0, 0, 1:]
     image[4, 1, 1:] = lab[0, 0, 1:]
 
-    image[0, 2, 1:] = bincenters[78]
-    image[1, 2, 1:] = bincenters[95]
-    image[2, 2, 1:] = bincenters[96]
-    image[3, 2, 1:] = bincenters[111]
-    image[4, 2, 1:] = bincenters[112]
+    image[0, 2, 1:] = binned_img[0, 0, 1:]
+    image[1, 2, 1:] = binned_img[0, 0, 1:]
+    image[2, 2, 1:] = binned_img[0, 0, 1:]
+    image[3, 2, 1:] = binned_img[0, 0, 1:]
+    image[4, 2, 1:] = binned_img[0, 0, 1:]
+
+    image[0, 3, 1:] = bincenters[78]
+    image[1, 3, 1:] = bincenters[95]
+    image[2, 3, 1:] = bincenters[96]
+    image[3, 3, 1:] = bincenters[111]
+    image[4, 3, 1:] = bincenters[112]
 
     rgb = convert_lab_to_rgb(image)
+    
 
-    plot_image(img)
+        
+        
+    #plot_image(img)
+    #plot_image(binned_img)
     # plot_image(lab)
     plot_image(rgb)
+    
 
-    binned_img = bin_lab()
 
 
 def main():
