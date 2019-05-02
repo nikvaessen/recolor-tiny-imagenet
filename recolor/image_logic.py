@@ -10,7 +10,7 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 
-from skimage import io, color
+from skimage import io, color, transform
 
 ################################################################################
 # constants related to the binning
@@ -203,16 +203,17 @@ def one_hot_encode_lab_img(img: np.ndarray,
 
     return a * bin + b
 
-"""Given a lab image returns a soft encoding per pixel"""
-"""current version takes about 7 sec per 64*64 image """
-def soft_encode_lab_img(img: np.ndarray, binsize=lab_preferred_bin_size, bincenters=bincenters):
-    inGamutBinAmount = len(bincenters)
+
+def soft_encode_lab_img(img: np.ndarray,
+                        bincenters=bincenters):
+    """Given a lab image returns a soft encoding per pixel"""
+    """current version takes about 7 sec per 64*64 image """
 
     # using np operations ->
     # get a,b values as array
     a = (img[:, :, 1]).flatten()
     b = (img[:, :, 2]).flatten()
-    
+
     ab = np.stack((a, b), axis=-1)
     temp_results = []
     # calculate distance to all bin centers per pixel
@@ -228,17 +229,18 @@ def soft_encode_lab_img(img: np.ndarray, binsize=lab_preferred_bin_size, bincent
         distances = sorted(distances)
         temp_results.append(distances[:5])
 
-    """ Should be fast enough but If someone has better idea, feel free to change """
-    # set index of remeberd bins to bindistance/sumbindistance
+    """ Should be fast enough but if someone has better idea, feel free to change """
+    # set index of remembered bins to bindistance/sumbindistance
     results = []
-    for v in temp_results:
-        fY = np.zeros(len(bins))
-        vsum = 0.0
-        for x in v:
-            vsum += x[0]
-        for x in v:
-            fY[x[1]] = float(x[0]) / vsum
-        results.append(fY)
+    for best_bins_list in temp_results:
+        bins_prob_dist = np.zeros(len(bins))
+
+        for dist, idx in best_bins_list:
+            bins_prob_dist[idx] = dist
+
+        bins_prob_dist /= bins_prob_dist.sum()
+
+        results.append(bins_prob_dist)
 
     # gaussian kernel thingy?!
     # TODO
@@ -438,8 +440,8 @@ def test_encoding():
     print(r)
 
 
-"""Calculate the bin centers and save them"""
 def create_bin_center_file():
+    """Calculate the bin centers and save them"""
     result = []
     for b in bins:
         amin = b[0]
@@ -453,6 +455,7 @@ def create_bin_center_file():
     arr = np.array(result)
     path = path_bincenters
     np.savez_compressed(path, arr)
+
 
 def create_bin_numpy_file():
     path = path_rgb_bin_indexes
@@ -502,6 +505,22 @@ def test_bins():
     plot_img_converted(img, lambda x: rgb)
 
 
+def test_lab_5encode():
+    img = read_image(test_image)
+
+    import time
+
+    img = transform.resize(img, (64, 64))
+
+    start = time.time()
+    r = soft_encode_lab_img(img)
+    end = time.time()
+
+    print(r[0])
+    print("time", end-start, "seconds")
+    pass
+
+
 def main():
     # test_lab_conversion_scikit()
     # test_rgb2lab2binned2rgb()
@@ -511,7 +530,7 @@ def main():
     # create_bin_numpy_file()
     # create_bin_center_file()
     # test_bins()
-
+    test_lab_5encode()
     pass
 
 
