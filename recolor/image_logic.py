@@ -203,8 +203,15 @@ def one_hot_encode_lab_img(img: np.ndarray,
 
     return a * bin + b
 
-# TODO MERLIN
-def soft_encode_lab_img(img: np.ndarray, binsize=lab_preferred_bin_size):
+"""Given a lab image returns a soft encoding per pixel"""
+def soft_encode_lab_img(img: np.ndarray, binsize=lab_preferred_bin_size, bincenters=bincenters = ):
+    # using np operations ->
+    # get a,b values as array
+    # calculate distance to all bin centers per pixel
+
+    # per pixel
+    # 5 times, select min distance, remeber distance and bin index, set this bins distance to high number
+    # set index of remeberd bins to bindistance/sumbindistance
     return ''
 
 
