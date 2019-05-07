@@ -64,7 +64,7 @@ class DataGenerator:
 
         gray_channel = cielab[:, :, 0]
 
-        return rgb, gray_channel
+        return gray_channel, soft_encode_lab_img(cielab)
 
     # list_IDs_temp : Ids from the batch to be generated
     def __data_generation(self, list_IDs_temp, path):
