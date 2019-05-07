@@ -206,6 +206,7 @@ def one_hot_encode_lab_img(img: np.ndarray,
 
 def soft_encode_lab_img(img: np.ndarray,
                         bincenters=bincenters,
+                        apply_kernel=False,
                         gaussian_kernel_var=5):
     """Given a lab image returns a soft encoding per pixel"""
     """current version takes about 7 sec per 64*64 image """
@@ -254,16 +255,17 @@ def soft_encode_lab_img(img: np.ndarray,
             distances.append(distance)
 
         # create a gaussian kernel to smooth distances
-        mean = np.mean(distances)
-        var = gaussian_kernel_var
-        pdf = stats.norm(mean, var).pdf
-        distances = pdf(distances)
+        if apply_kernel:
+            mean = np.mean(distances)
+            var = gaussian_kernel_var
+            pdf = stats.norm(mean, var).pdf
+            distances = pdf(distances)
 
-        # apply kernel to distances
+        # store distances in 5-hot vector
         for i, dist_idx in enumerate(indexes):
             bins_prob_dist[dist_idx] = distances[i]
 
-        # normalize to make it a probability distibrution
+        # normalize 5-hot vector to make it a probability distribution
         bins_prob_dist /= bins_prob_dist.sum()
 
         results.append(bins_prob_dist)
