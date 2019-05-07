@@ -6,8 +6,10 @@
 ################################################################################
 
 import os
+import time
 
 import numpy as np
+import scipy.stats as stats
 import matplotlib.pyplot as plt
 
 from skimage import io, color, transform
@@ -37,13 +39,11 @@ else:
 if os.path.exists(path_bincenters):
     bincenters = np.load(path_bincenters)['arr_0']
 else:
-    print("WARNING: ", path_bincenters, " was not found, some methods in ", __name__,
-          "will fail")
+    print("WARNING:", path_bincenters, " was not found, some methods in",
+          __name__, "will fail")
 
 ################################################################################
 # image loading and display
-
-test_image = "../test_images/test_image2.png"
 
 
 def read_image(fn: str):
@@ -205,53 +205,85 @@ def one_hot_encode_lab_img(img: np.ndarray,
 
 
 def soft_encode_lab_img(img: np.ndarray,
-                        bincenters=bincenters):
+                        bincenters=bincenters,
+                        gaussian_kernel_var=5):
     """Given a lab image returns a soft encoding per pixel"""
     """current version takes about 7 sec per 64*64 image """
+    n_rows = img.shape[0]
+    n_cols = img.shape[1]
+    n_pixels = n_rows * n_cols
+    n_bins = len(bincenters)
 
     # using np operations ->
     # get a,b values as array
     a = (img[:, :, 1]).flatten()
     b = (img[:, :, 2]).flatten()
 
+    # creates an array of length 'n_pixels', with a tuple value
+    # (a, b) for each pixel
     ab = np.stack((a, b), axis=-1)
-    temp_results = []
 
-    d = np.zeros((len(bincenters), ab.shape[0]))
+    # for each bin, compute the distance of each pixel in the image to the bin
+    # stored in variable d:
+    # row: each bin
+    # column: each pixel (flattened 1d array of length n_pixels)
+    d = np.zeros((n_bins, n_pixels))
     for idx, c in enumerate(bincenters):
         dist = np.linalg.norm(ab - c, axis=-1)
         d[idx, :] = dist
 
+    # for each column, the (the array of pixels), we want to know the
+    # index of the 5 smallest distances
     num = 5
     ind = np.argsort(d, axis=0)[:num, :]
-    print(ind)
     val = np.take(d, ind)
 
-    print(d.shape)
-    print(ind.shape)
-    print(val.shape)
-
-    """ Should be fast enough but if someone has better idea, feel free to change """
-    # set index of remembered bins to bindistance/sumbindistance
+    # convert the closest 5 pixels into a probability distribution
+    # results will contain 'n_pixel' numpy arrays of size 'n_bins'
     results = []
-    for pixel_column in range(0, ind.shape[1]):
-        bins_prob_dist = np.zeros(len(bins))
+    for pixel_column_idx in range(0, n_pixels):
+        bins_prob_dist = np.zeros(n_bins)
 
+        indexes = []
+        distances = []
         for i in range(0, num):
-            bins_prob_dist[ind[i, pixel_column]] = val[i, pixel_column]
+            correct_index = ind[i, pixel_column_idx]
+            distance = val[i, pixel_column_idx]
 
-        # this step is actually stupid and needs to be fixed
+            indexes.append(correct_index)
+            distances.append(distance)
+
+        # create a gaussian kernel to smooth distances
+        mean = np.mean(distances)
+        var = gaussian_kernel_var
+        pdf = stats.norm(mean, var).pdf
+
+        # apply kernel to distances
+        for i, dist_idx in enumerate(indexes):
+            bins_prob_dist[dist_idx] = pdf(distances[i])
+
+        # normalize to make it a probability distibrution
         bins_prob_dist /= bins_prob_dist.sum()
 
         results.append(bins_prob_dist)
 
-    # gaussian kernel thingy?!
-    # TODO
-    return results
+    # transform the results back into an image shape
+    r = np.zeros((n_pixels, n_bins))
+    for idx, color_prob_dist in enumerate(results):
+        if np.isclose(1, color_prob_dist.sum()):
+            r[idx, :] = color_prob_dist
+        else:
+            raise ValueError("calculated a prob dist which did not sum to 1")
+
+    r = r.reshape((n_rows, n_cols, n_bins))
+
+    return r
 
 
 ###############################################################################
 # tests
+
+test_image = "../test_images/test_image2.png"
 
 
 def _get_test_image():
@@ -510,11 +542,9 @@ def test_bins():
 
 def test_lab_5encode():
     img = read_image(test_image)
-    import time
 
     img = transform.resize(img, (64, 64))
     lab = convert_rgb_to_lab(img)
-    
 
     start = time.time()
     r = soft_encode_lab_img(lab)
@@ -571,18 +601,36 @@ def test_lab_5encode():
 
     rgb = convert_lab_to_rgb(image)
     rgb2 = convert_lab_to_rgb(bimg)
-    
 
-        
-        
     #plot_image(img)
     #plot_image(binned_img)
     # plot_image(lab)
     plot_image(rgb)
     plot_image(img)
     plot_image(rgb2)
-    
 
+
+def test_lab_encode():
+    img = read_image(test_image)
+    img = transform.resize(img, (64, 64))
+
+    # plot_image(img)
+    start = time.time()
+
+    encoded = soft_encode_lab_img(img)
+
+    for row in range(encoded.shape[0]):
+        for col in range(encoded.shape[1]):
+            dist = encoded[row, col, :]
+            if not np.isclose(1, dist.sum()):
+                print(dist)
+                print(dist.sum())
+                exit()
+
+    end = time.time()
+    total = end - start
+
+    print("encoding took", total, "seconds")
 
 
 def main():
@@ -594,7 +642,8 @@ def main():
     # create_bin_numpy_file()
     # create_bin_center_file()
     # test_bins()
-    test_lab_5encode()
+    # test_lab_5encode()
+    test_lab_encode()
     pass
 
 
