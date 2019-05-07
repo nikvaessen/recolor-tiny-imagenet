@@ -257,10 +257,11 @@ def soft_encode_lab_img(img: np.ndarray,
         mean = np.mean(distances)
         var = gaussian_kernel_var
         pdf = stats.norm(mean, var).pdf
+        distances = pdf(distances)
 
         # apply kernel to distances
         for i, dist_idx in enumerate(indexes):
-            bins_prob_dist[dist_idx] = pdf(distances[i])
+            bins_prob_dist[dist_idx] = distances[i]
 
         # normalize to make it a probability distibrution
         bins_prob_dist /= bins_prob_dist.sum()
