@@ -16,6 +16,7 @@ from keras.layers import Activation, Conv2D, BatchNormalization,\
     UpSampling2D, ZeroPadding2D
 from keras.activations import relu
 from keras import losses
+import time
 from data_generator import DataGenerator
 
 from image_logic import num_bins
@@ -164,6 +165,31 @@ def multinomial_loss(predictions, soft_encodeds, weights):
             losses += loss
 
     return losses
+
+def multinomial_loss(predictions, soft_encodeds, weights):
+    """
+    :param predictions: np.array, dimensions should be (n, h, w, q)
+    :param soft_encoded: np.array, dimensions should be (n, h, w, q)
+    Make sure all values are between 0 and 1, and that the sum of soft_encoded = 1
+    :return: loss
+    """
+
+    losses = 0
+
+    vs = np.apply_along_axis(np.argmax, 3, soft_encodeds)
+    func = np.vectorize(lambda x: weights[x])
+    vs = func(vs)
+    for i in range(predictions.shape[0]):
+        loss = 0
+        for h in range(predictions.shape[1]):
+            loss = vs[i, h] * np.dot(soft_encodeds[i, h], np.log(predictions[i, h] + 0.000000000000000001).transpose())
+            loss = np.diag(loss)
+            loss = - loss
+            loss = np.sum(loss)
+            losses += loss
+
+    return losses
+
 
 def main():
     x = np.ones((1, 224, 224, 1))

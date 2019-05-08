@@ -8,6 +8,7 @@ import pickle
 import os
 from image_logic import *
 import copy
+from matplotlib import pyplot as plt
 
 class ColourProbability():
     def __init__(self, num_label, label):
@@ -137,5 +138,149 @@ def compute_probabilities():
         pickle.dump(all_probs, fp)
 
 
-compute_probabilities()
+def create_rgb_to_bin():
+    '''
+    Create a dictionary of all rgb colours to the corresponding bin size
+    '''
+
+    path_bins = '../np/bins.npz'
+    bins = np.load(path_bins)['arr_0']
+    n_bins = len(bins)
+
+    path_bincenters = '../np/bincenters.npz'
+    bincenters = np.load(path_bincenters)['arr_0']
+
+    rgb_to_bin = {}
+
+    for rall in range(256):
+        print(rall)
+        for gall in range(256):
+            for ball in range(256):
+                r = rall / 256
+                g = gall / 256
+                b = ball / 256
+
+                r = np.ones((1, 1)) * r
+                g = np.ones((1, 1)) * g
+                bb = np.ones((1, 1)) * b
+
+                rgb_pixel = np.stack((r, g, bb), axis=-1)
+                cie_pixel = convert_rgb_to_lab(rgb_pixel)
+
+                a = cie_pixel[:, :, 1].flatten()
+                b = cie_pixel[:, :, 2].flatten()
+
+                ab = np.stack((a, b), axis=-1)
+                d = np.zeros(n_bins)
+
+                for idx, c in enumerate(bincenters):
+                    dist = np.linalg.norm(ab - c, axis=-1)
+                    d[idx] = dist
+
+                bin = np.argmin(d)
+
+                r *= 256
+                g *= 256
+                bb *= 256
+                rgb_string = str(r[0][0]) + ', ' + str(g[0][0]) + ', ' + str(bb[0][0])
+                print(rgb_string)
+                rgb_to_bin[rgb_string] = bin
+
+    # with open('../probabilities/rgb_to_bins.pickle', 'wb') as fp:
+    #     pickle.dump(rgb_to_bin, fp)
+
+
+def bin_probability():
+    '''
+    :return: Get the probability of colour for each bin accross the whole dataset
+    '''
+    with open('../probabilities/probability_object_all.pickle', 'rb') as fp:
+        probabilities = pickle.load(fp)
+
+    with open('../probabilities/rgb_to_bins.pickle', 'rb') as fp:
+        rgb_to_bin = pickle.load(fp)
+
+    bin_probs = np.zeros(262)
+
+    for r in range(256):
+        print('R value', r)
+        for g in range(256):
+            for b in range(256):
+                key = str(r) + '.0, ' + str(g) + '.0, ' + str(b) + '.0'
+                bin = rgb_to_bin[key]
+                bin_probs[bin] += probabilities.absolutes[r, g, b]
+
+    bin_probs /= probabilities.counts
+
+    with open('../probabilities/probability_bins.pickle', 'wb') as fp:
+        pickle.dump(bin_probs, fp)
+
+def compute_weights():
+    with open('../probabilities/probability_bins.pickle', 'rb') as fp:
+        bin_probs = pickle.load(fp)
+
+    # print(bin_probs)
+
+    print('Number of bins', len(bin_probs))
+    weights = {}
+    somme = 0
+    for key in range(len(bin_probs)):
+        prob = bin_probs[key]
+        w = probs_to_weight(prob, len(bin_probs))
+        weights[key] = w
+        somme += w * prob
+        print('Hey', somme, w, prob)
+
+    print(somme)
+    newSomme = 0
+    for key in range(len(bin_probs)):
+        print(weights[key], somme)
+        weights[key] = weights[key] / somme
+        newSomme += weights[key] * bin_probs[key]
+    print(newSomme)
+
+    with open('../probabilities/weights.pickle', 'wb') as fp:
+        pickle.dump(weights, fp)
+
+
+def probs_to_weight(weight, Q, sigma=5, lamda=0.5):
+    # print(weight)
+
+    smoothed = gaussian(weight)
+    # print(smoothed)
+    smoothed = (1. / sigma) * smoothed
+    smoothed = (1 - lamda) * smoothed + (lamda / Q)
+    new_weight = 1. / smoothed
+
+    return new_weight
+
+def gaussian(x, sigma=5):
+    a = 1. / (sigma * np.sqrt(2 * np.pi))
+    b = - 0.5 * ((x / sigma) * (x / sigma))
+    c = np.exp(b)
+    return a * c
+
+
+def main():
+    compute_weights()
+    with open('../probabilities/weights.pickle', 'rb') as fp:
+        weights = pickle.load(fp)
+
+    # print(weights)
+    x = []
+    y = []
+    for i in range(len(weights)):
+        x.append(i)
+        y.append(weights[i])
+
+    plt.scatter(x, y, s=0.1)
+    plt.show()
+
+
+
+
+if __name__ == '__main__':
+    main()
+# bin_probability()
+
 

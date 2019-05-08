@@ -2,7 +2,7 @@
 # Utility methods related to Data generator
 # required to generate the data batches at training time
 #
-# author(s): Jade Cock
+# author(s): Jade Cock, Nik Vaessen
 ################################################################################
 
 import os
