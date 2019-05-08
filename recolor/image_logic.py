@@ -32,7 +32,9 @@ path_bins = "../np/bins.npz"
 
 if os.path.exists(path_bins):
     bins = np.load(path_bins)['arr_0']
+    num_bins = len(bins)
 else:
+    num_bins = 0
     print("WARNING: ", path_bins, " was not found, some methods in ", __name__,
           "will fail")
 

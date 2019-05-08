@@ -14,9 +14,11 @@ import pickle
 from keras import Sequential
 from keras.layers import Activation, Conv2D, BatchNormalization,\
     UpSampling2D, ZeroPadding2D
-from keras.activations import relu, softmax
+from keras.activations import relu
 from keras import losses
-from ImageProcessing import DataGenerator
+from data_generator import DataGenerator
+
+from image_logic import num_bins
 
 ################################################################################
 
@@ -27,9 +29,8 @@ def init_model():
     model = Sequential()
 
     # layer 1:
-    model.add(ZeroPadding2D(name="layer1"))
-    model.add(Conv2D(filters=64, kernel_size=3, padding="valid", strides=(1, 1),
-                     input_shape=required_input_shape_, data_format='channels_last'))
+    model.add(ZeroPadding2D(name="layer1", input_shape=required_input_shape_, data_format='channels_last'))
+    model.add(Conv2D(filters=64, kernel_size=3, padding="valid", strides=(1, 1)))
     model.add(Activation(relu))
     model.add(ZeroPadding2D())
     model.add(Conv2D(filters=64, kernel_size=3,  strides=(2, 2)))
@@ -167,12 +168,12 @@ def multinomial_loss(predictions, soft_encodeds, weights):
 def main():
     x = np.ones((1, 224, 224, 1))
 
-    params = {'dim_in': (64 * 64),
-              'dim_out': (64 * 64),
-              'batch_size': 64,
-              'n_channels_in': 1,
-              'n_channels_out' : 3,
-              'shuffle': True}
+    params = {
+        'dim_in': (64, 64),
+        'dim_out': (64, 64, num_bins),
+        'batch_size': 64,
+        'shuffle': True
+    }
 
     with open('./train_ids.pickle', 'rb') as fp:
         train_partition = pickle.load(fp)
@@ -180,25 +181,30 @@ def main():
     with open('./validation_ids.pickle', 'rb') as fp:
         validation_partition = pickle.load(fp)
 
+    print("using {} training samples".format(len(train_partition)))
+    print("using {} validation samples".format(len(validation_partition)))
+
+    print("example sample file:", train_partition[0])
+
     # Only important for the datagenerator model. label is generated at the time of loading
-    labels = []
+    # labels = []
 
-    training_generator = DataGenerator(train_partition, labels, **params)
-    validation_generator = DataGenerator(validation_partition, labels, **params)
-
+    training_generator = DataGenerator(train_partition, **params)
+    validation_generator = DataGenerator(validation_partition, **params)
+    #
     model: Sequential = init_model()
 
-# To use with model generator
-    # model.fit_generator(generator=training_generator,
-    #                     validation_data=validation_generator,
-    #                     use_multiprocessing=True,
-    #                     workers=6)
-
-    y = model.predict(x, batch_size=1)
-
-    print(y.shape) #"\n", y)
-
-    model.summary()
+    # To use with model generator
+    model.fit_generator(generator=training_generator,
+                        validation_data=validation_generator,
+                        use_multiprocessing=True,
+                        workers=6)
+    #
+    # y = model.predict(x, batch_size=1)
+    #
+    # print(y.shape)  # "\n", y)
+    #
+    # model.summary()
 
 
 if __name__ == '__main__':
