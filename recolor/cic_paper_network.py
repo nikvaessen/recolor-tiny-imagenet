@@ -142,6 +142,27 @@ def init_model():
 
     return model
 
+def multinomial_loss(predictions, soft_encodeds, weights):
+    """
+    :param predictions: np.array, dimensions should be (n, h, w, q)
+    :param soft_encoded: np.array, dimensions should be (n, h, w, q)
+    Make sure all values are between 0 and 1, and that the sum of soft_encoded = 1
+    :return: loss
+    """
+
+    losses = 0
+    for i in range(predictions.shape[0]):
+        loss = 0
+        for h in range(predictions.shape[1]):
+            vs = np.array([weights[np.argmax(x)] for x in soft_encodeds[i, h]])
+            loss = vs[:, np.newaxis] * np.dot(soft_encodeds[i, h],
+                                              np.log(predictions[i, h] + 0.000000000000000001).transpose())
+            loss = np.diag(loss)
+            loss = - loss
+            loss = np.sum(loss)
+            losses += loss
+
+    return losses
 
 def main():
     x = np.ones((1, 224, 224, 1))
