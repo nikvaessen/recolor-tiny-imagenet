@@ -20,9 +20,67 @@ from keras import losses
 from keras import backend as K
 
 from data_generator import DataGenerator
-from image_logic import num_bins
+from image_logic import num_bins, probability_dist_to_ab
+
 
 ################################################################################
+# Custom loss functions
+
+
+def multinomial_loss(predictions, soft_encodeds, weights):
+    """
+    :param predictions: np.array, dimensions should be (n, h, w, q)
+    :param soft_encoded: np.array, dimensions should be (n, h, w, q)
+    Make sure all values are between 0 and 1, and that the sum of soft_encoded = 1
+    :return: loss
+    """
+
+    losses = 0
+    for i in range(predictions.shape[0]):
+        loss = 0
+        for h in range(predictions.shape[1]):
+            vs = np.array([weights[np.argmax(x)] for x in soft_encodeds[i, h]])
+            loss = vs[:, np.newaxis] * np.dot(soft_encodeds[i, h],
+                                              np.log(predictions[i, h] + 0.000000000000000001).transpose())
+            loss = np.diag(loss)
+            loss = - loss
+            loss = np.sum(loss)
+            losses += loss
+
+    return losses
+
+
+def multinomial_loss2(predictions, soft_encodeds):
+    """
+    :param predictions: np.array, dimensions should be (n, h, w, q)
+    :param soft_encoded: np.array, dimensions should be (n, h, w, q)
+    Make sure all values are between 0 and 1, and that the sum of soft_encoded = 1
+    :return: loss
+    """
+
+    losses = 0
+    for i in range(predictions.shape[0]):
+        loss = 0
+        for h in range(predictions.shape[1]):
+            loss = np.dot(soft_encodeds[i, h],
+                          np.log(predictions[i, h] + 0.000000000000000001).transpose())
+
+            loss = np.diag(loss)
+            loss = - loss
+            loss = np.sum(loss)
+            losses += loss
+
+    return losses
+
+
+def l2_loss(y_true, y_pred):
+    y_pred = probability_dist_to_ab(y_pred)
+
+    return losses.mean_squared_error(y_true, y_pred)
+
+
+################################################################################
+# Define the network as a Sequential Keras model
 
 required_input_shape_ = (64, 64, 1)
 required_output_shape = (64, 64, num_bins)
@@ -30,7 +88,8 @@ with open('../probabilities/weights.pickle', 'rb') as fp:
     weights = pickle.load(fp)
 
 
-def init_model(loss=losses.mean_squared_error):
+
+def init_model(loss_function=l2_loss):
     model = Sequential()
 
     # layer 1: (64x64x1) --> (32x32x64)
@@ -138,15 +197,16 @@ def init_model(loss=losses.mean_squared_error):
     model.add(Conv2D(filters=num_bins, kernel_size=1, strides=(1, 1)))
     model.add(Activation(softmax))
 
-    # # TODO add rescaling
+    # TODO add rescaling?
     # model.add(Conv2D(filters=2, kernel_size=1, padding="valid", strides=(1, 1)))
     # model.add(UpSampling2D(size=(4, 4)))
-
-    model.compile(loss=loss, optimizer='adam')
+    model.compile(loss=loss_function, optimizer='adam')
 
     return model
 
 
+################################################################################
+# Experimenting with running the model
 def get_weights(bin, weights=weights):
     print('BIN', bin)
     return weights[bin]
@@ -220,15 +280,16 @@ def multinomial_loss2(predictions, soft_encodeds):
             losses += loss
 
     return losses
+################################################################################
+# Experimenting with running the model
 
-def main():
-    x = np.ones((1, 224, 224, 1))
-
+def train_model_small_dataset():
     params = {
         'dim_in': (64, 64, 1),
         'dim_out': (64, 64, num_bins),
         'batch_size': 8,
-        'shuffle': True
+        'shuffle': True,
+        'mode': DataGenerator.mode_grey_in_ab_out
     }
 
     with open('./train_ids.pickle', 'rb') as fp:
@@ -248,7 +309,7 @@ def main():
     training_generator = DataGenerator(train_partition, **params)
     validation_generator = DataGenerator(validation_partition, **params)
 
-    model: Sequential = init_model(multinomial_loss)
+    model: Sequential = init_model(loss_function=l2_loss)
     # model.summary()
 
     # To use with model generator/
@@ -258,14 +319,33 @@ def main():
                         workers=1,
                         verbose=1)
 
+    # take a sample and try to predict
+    import image_logic
+    sample_rgb = image_logic.read_image(train_partition[18])
+    sample_lab = image_logic.convert_rgb_to_lab(sample_rgb)
 
-    # y = model.predict(x, batch_size=1)
-    #
-    # print(y.shape)  # "\n", y)
+    sample_grey = sample_lab[:, :, 0:1]
+    sample_grey = sample_grey.reshape(1, *sample_grey.shape)
+
+    output = model.predict(sample_grey)
+
+    ab = image_logic.probability_dist_to_ab(output)
+
+    lab = np.zeros(sample_lab.shape)
+    lab[:, :, 0:1] = sample_grey
+    lab[:, :, 1:] = ab
+
+    rgb = image_logic.convert_lab_to_rgb(lab)
+
+    image_logic.plot_img_converted(sample_rgb, lambda x: rgb)
 
 
 def get_gpu_info():
     print(K.tensorflow_backend._get_available_gpus())
+
+
+def main():
+    train_model_small_dataset()
 
 
 if __name__ == '__main__':
