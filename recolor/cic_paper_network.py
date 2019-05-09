@@ -88,7 +88,7 @@ with open('../probabilities/weights.pickle', 'rb') as fp:
     weights = pickle.load(fp)
 
 
-def init_model(loss=losses.mean_squared_error):
+def init_model(loss_function=l2_loss):
     model = Sequential()
 
     # layer 1: (64x64x1) --> (32x32x64)
@@ -200,7 +200,7 @@ def init_model(loss=losses.mean_squared_error):
     # model.add(Conv2D(filters=2, kernel_size=1, padding="valid", strides=(1, 1)))
     # model.add(UpSampling2D(size=(4, 4)))
 
-    model.compile(loss=loss, optimizer='adam')
+    model.compile(loss=loss_function, optimizer='adam')
 
     return model
 
@@ -280,6 +280,8 @@ def multinomial_loss2(predictions, soft_encodeds):
             losses += loss
 
     return losses
+################################################################################
+# Experimenting with running the model
 
 def train_model_small_dataset():
     params = {
