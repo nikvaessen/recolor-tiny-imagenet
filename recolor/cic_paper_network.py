@@ -88,6 +88,7 @@ with open('../probabilities/weights.pickle', 'rb') as fp:
     weights = pickle.load(fp)
 
 
+
 def init_model(loss_function=l2_loss):
     model = Sequential()
 
@@ -199,7 +200,6 @@ def init_model(loss_function=l2_loss):
     # TODO add rescaling?
     # model.add(Conv2D(filters=2, kernel_size=1, padding="valid", strides=(1, 1)))
     # model.add(UpSampling2D(size=(4, 4)))
-
     model.compile(loss=loss_function, optimizer='adam')
 
     return model
