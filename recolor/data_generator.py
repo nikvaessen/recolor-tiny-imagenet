@@ -86,6 +86,8 @@ class DataGenerator(keras.utils.Sequence):
         # Generate data
         for i, path in enumerate(batch_paths):
             # Store sample
+            path = path.replace('\\', '/') # Activate for Windows
+            print(path)
             gray_channel, soft_encoding = load_image(path)
             X[i, ] = gray_channel
             y[i, ] = soft_encoding
@@ -112,7 +114,6 @@ class DataGenerator(keras.utils.Sequence):
 
 def is_grey_image(fn):
     img = image_logic.read_image(fn)
-
     return img.shape == (64, 64)
 
 
