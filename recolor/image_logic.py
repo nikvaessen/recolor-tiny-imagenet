@@ -49,6 +49,7 @@ else:
 
 
 def read_image(fn: str):
+    fn = fn.replace('\\', '/') # activate for Windows
     return io.imread(fn)
 
 

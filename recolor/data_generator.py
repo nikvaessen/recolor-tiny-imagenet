@@ -124,6 +124,8 @@ class DataGenerator(keras.utils.Sequence):
         # Generate data
         for i, path in enumerate(batch_paths):
             # Store sample
+            #path = path.replace('\\', '/') # Activate for Windows
+            #print(path)
             inp, outp = self.image_load_fn(path)
             X[i, ] = inp
             y[i, ] = outp
@@ -155,7 +157,6 @@ class DataGenerator(keras.utils.Sequence):
 
 def is_grey_image(fn):
     img = image_logic.read_image(fn)
-
     return img.shape == (64, 64)
 
 
