@@ -250,21 +250,39 @@ def probs_to_weight(weight, Q, sigma=5, lamda=0.5):
 
     return smoothed
 
-def gaussian(x, sigma=5):
-    a = 1. / (sigma * np.sqrt(2 * np.pi))
-    b = - 0.5 * ((x / sigma) * (x / sigma))
-    c = np.exp(b)
-    return a * c
+def test_weight_loss():
+    image = read_image('../test_images/fish.JPEG')
+    image = convert_rgb_to_lab(image)
+    image = soft_encode_lab_img(image)
+    print(image.shape)
 
-def test_image():
-    image = read_image('../test_images/test_image.png')
-    plot_image(image)
+    with open('../probabilities/weights.pickle', 'rb') as fp:
+        weights = pickle.load(fp)
+    print("Shape", image.shape)
 
+    test = np.random.rand(64, 64, 262)
+    losses = 0
+    for h in range(image.shape[0]):
+        loss = np.dot(image[h],
+                            np.log(test[h] + 0.000000000000000001).transpose())
+        loss = np.diag(loss)
+        loss = - loss
+        loss = np.sum(loss)
+        losses += loss
+    print(losses)
 
+    losses = 0
+    for h in range(test.shape[0]):
+        vs = np.array([weights[np.argmax(x)] for x in image[h]])
+        loss = vs[:, np.newaxis] * np.dot(image[h],
+                                          np.log(test[h] + 0.000000000000000001).transpose())
+        loss = np.diag(loss)
+        loss = - loss
+        loss = np.sum(loss)
+        losses += loss
+    print(losses)
 
-
-
-
+    return losses
 
 
 def main():
@@ -272,21 +290,15 @@ def main():
     with open('../probabilities/weights.pickle', 'rb') as fp:
         weights = pickle.load(fp)
 
-    # print(weights)
     x = []
     y = []
     for i in range(len(weights)):
         x.append(i)
         y.append(weights[i])
+
     plt.scatter(x, y, color='teal', s=0.3)
     plt.savefig('../ResultPics/weights.png')
-
     plt.show()
-
-
-
-
-
 
 if __name__ == '__main__':
     main()
