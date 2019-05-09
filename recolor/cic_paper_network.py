@@ -205,8 +205,6 @@ def init_model(loss_function=l2_loss):
     return model
 
 
-################################################################################
-# Experimenting with running the model
 def get_weights(bin, weights=weights):
     print('BIN', bin)
     return weights[bin]
