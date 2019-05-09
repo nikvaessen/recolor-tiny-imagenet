@@ -98,12 +98,12 @@ def plot_ingamut(bins, bin_ingamut):
     img[:, :, 1] = img_a
     img[:, :, 2] = img_b
 
-
     rgb_ingamut = convert_lab_to_rgb(img)
 
     print("bins ingamut: ", len(set(bin_ingamut)))
     plot_image(rgb_ingamut)
-    return(img)
+
+    return img
 
 
 ################################################################################
@@ -283,6 +283,32 @@ def soft_encode_lab_img(img: np.ndarray,
     r = r.reshape((n_rows, n_cols, n_bins))
 
     return r
+
+
+def probability_dist_to_ab(pdist, T=1):
+    # pdist is assumed to have shape:
+    # (batch_size, image_height, image_width, n_bins)
+
+    assert len(pdist.shape) == 4
+
+    batch_ab = np.empty((*pdist.shape[0:3], 2))
+
+    for i in range(pdist.shape[0]):
+        p = pdist[i, :, :, :]
+
+        # p -= np.max(p, axis=2)[:, :, np.newaxis]
+        # p = np.exp(np.log(p)/T)
+        # p /= p.sum()
+
+        bin_indexes = np.argmax(p, axis=2)
+        print(bin_indexes.shape)
+        for j in range(p.shape[0]):
+            for k in range(p.shape[1]):
+                bin_idx = bin_indexes[j, k]
+                ab = bincenters[bin_idx]
+                batch_ab[i, j, k, :] = ab
+
+    return batch_ab
 
 
 ###############################################################################
@@ -618,6 +644,9 @@ def test_lab_5encode():
 def test_lab_encode():
     img = read_image(test_image)
     img = transform.resize(img, (64, 64))
+    img = color.rgba2rgb(img)
+
+    img = convert_rgb_to_lab(img)
 
     # plot_image(img)
     start = time.time()
@@ -638,6 +667,45 @@ def test_lab_encode():
     print("encoding took", total, "seconds")
 
 
+def test_pdist_to_ab():
+    img = read_image(test_image)
+    img = transform.resize(img, (64, 64))
+    img = color.rgba2rgb(img)
+
+    lab = convert_rgb_to_lab(img)
+    l = lab[:, :, 0]
+
+    encoded = soft_encode_lab_img(lab)
+    encoded = encoded.reshape(1, *encoded.shape)
+
+    ab_predicted = probability_dist_to_ab(encoded)
+
+    new_lab = np.empty((64, 64, 3))
+    new_lab[:, :, 0] = l
+    new_lab[:, :, 1:] = ab_predicted
+
+    new_rgb = convert_lab_to_rgb(new_lab)
+    plot_image(new_rgb)
+
+
+def plot_all_bins():
+    lab = np.ones((1, 289, 3)) * 0
+    # lab = lab.flatten()
+
+    for idx, b in enumerate(bincenters):
+        # start = idx * 3
+        # end = (idx+1) * 3
+        # print(b)
+        # lab[start:end] = (50, b[0], b[1])
+        lab[0, idx, 0:] = (50, *b)
+
+    lab = lab.reshape(17, 17, 3)
+
+    rgb = convert_lab_to_rgb(lab)
+
+    plot_image(rgb)
+
+
 def main():
     # test_lab_conversion_scikit()
     # test_rgb2lab2binned2rgb()
@@ -648,7 +716,9 @@ def main():
     # create_bin_center_file()
     # test_bins()
     # test_lab_5encode()
-    test_lab_encode()
+    # test_lab_encode()
+    # test_pdist_to_ab()
+    plot_all_bins()
     pass
 
 
