@@ -24,7 +24,7 @@ def load_image(image_path):
     """
     Load an image, create the input and output of the network.
 
-    The input is a gray-scale image as a (width*height) numpy array
+    The input is a gray-scale image as a (width*height*1) numpy array
     The output is a soft-encoding of the expected color bin as a
     (width*height*num_bins) numpy array
 
@@ -35,6 +35,8 @@ def load_image(image_path):
     cielab = image_logic.convert_rgb_to_lab(rgb)
 
     gray_channel = cielab[:, :, 0]
+    gray_channel = gray_channel[:, :, np.newaxis]
+
     soft_encoding = image_logic.soft_encode_lab_img(cielab)
 
     return gray_channel, soft_encoding
