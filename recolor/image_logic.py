@@ -49,7 +49,7 @@ else:
 
 
 def read_image(fn: str):
-    return io.imread(fn)[:, :, 0:3]
+    return io.imread(fn)
 
 
 def plot_image(x: np.ndarray):

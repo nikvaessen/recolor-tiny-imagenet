@@ -144,6 +144,7 @@ def init_model():
 
     return model
 
+
 def multinomial_loss(predictions, soft_encodeds, weights):
     """
     :param predictions: np.array, dimensions should be (n, h, w, q)
@@ -206,24 +207,26 @@ def main():
     with open('./validation_ids.pickle', 'rb') as fp:
         validation_partition = pickle.load(fp)
 
+    with open('./test_ids.pickle', 'rb') as fp:
+        test_partition = pickle.load(fp)
+
     print("using {} training samples".format(len(train_partition)))
     print("using {} validation samples".format(len(validation_partition)))
+    print("using {} test samples".format(len(test_partition)))
 
-    print("example sample file:", train_partition[0])
-
-    # Only important for the datagenerator model. label is generated at the time of loading
-    # labels = []
+    print("example sample file path:", train_partition[0])
 
     training_generator = DataGenerator(train_partition, **params)
     validation_generator = DataGenerator(validation_partition, **params)
-    #
+
     model: Sequential = init_model()
 
     # To use with model generator
     model.fit_generator(generator=training_generator,
                         validation_data=validation_generator,
                         use_multiprocessing=True,
-                        workers=6)
+                        workers=1,
+                        verbose=2)
     #
     # y = model.predict(x, batch_size=1)
     #

@@ -108,6 +108,12 @@ class DataGenerator(keras.utils.Sequence):
         return X, y
 
 
+def is_grey_image(fn):
+    img = image_logic.read_image(fn)
+
+    return img.shape == (64, 64)
+
+
 def generate_data_paths_and_pickle():
     '''
     Create a list of the path to the images for the training set, validation set and test set
@@ -121,24 +127,30 @@ def generate_data_paths_and_pickle():
 
     for subdirs, dirs, files in os.walk(rootdir):
         for file in files:
-            if os.path.splitext(file)[1] == image_extension:
-                path = os.path.join(subdirs, file).replace('\\', '/')
+            path = os.path.join(subdirs, file).replace('\\', '/')
+            if os.path.splitext(file)[1] == image_extension and \
+                    not is_grey_image(path):
                 train_ids.append(path)
 
     with open('./train_ids.pickle', 'wb') as fp:
         pickle.dump(train_ids, fp)
+
+    print("created training id's")
 
     # validation set
     rootdir = "../data/tiny-imagenet-200/val"
     validation_ids = []
     for subdirs, dirs, files in os.walk(rootdir):
         for file in files:
-            if os.path.splitext(file)[1] == image_extension:
-                path = os.path.join(subdirs, file).replace('\\', '/')
+            path = os.path.join(subdirs, file).replace('\\', '/')
+            if os.path.splitext(file)[1] == image_extension and \
+                    not is_grey_image(path):
                 validation_ids.append(path)
 
     with open('./validation_ids.pickle', 'wb') as fp:
         pickle.dump(validation_ids, fp)
+
+    print("created validation id's")
 
     # Test set
     rootdir = "../data/tiny-imagenet-200/test"
@@ -146,12 +158,15 @@ def generate_data_paths_and_pickle():
     test_ids = []
     for subdirs, dirs, files in os.walk(rootdir):
         for file in files:
-            if os.path.splitext(file)[1] == image_extension:
-                path = os.path.join(subdirs, file).replace('\\', '/')
+            path = os.path.join(subdirs, file).replace('\\', '/')
+            if os.path.splitext(file)[1] == image_extension and \
+                    not is_grey_image(path):
                 test_ids.append(path)
 
     with open('./test_ids.pickle', 'wb') as fp:
         pickle.dump(test_ids, fp)
+
+    print("created test id's")
 
 
 if __name__ == '__main__':
