@@ -9,6 +9,7 @@ import os
 from image_logic import *
 import copy
 from matplotlib import pyplot as plt
+from scipy.stats import norm
 
 class ColourProbability():
     def __init__(self, num_label, label):
@@ -219,8 +220,6 @@ def compute_weights():
     with open('../probabilities/probability_bins.pickle', 'rb') as fp:
         bin_probs = pickle.load(fp)
 
-    # print(bin_probs)
-
     print('Number of bins', len(bin_probs))
     weights = {}
     somme = 0
@@ -229,12 +228,11 @@ def compute_weights():
         w = probs_to_weight(prob, len(bin_probs))
         weights[key] = w
         somme += w * prob
-        print('Hey', somme, w, prob)
 
     print(somme)
+
     newSomme = 0
     for key in range(len(bin_probs)):
-        print(weights[key], somme)
         weights[key] = weights[key] / somme
         newSomme += weights[key] * bin_probs[key]
     print(newSomme)
@@ -244,21 +242,29 @@ def compute_weights():
 
 
 def probs_to_weight(weight, Q, sigma=5, lamda=0.5):
-    # print(weight)
-
-    smoothed = gaussian(weight)
-    # print(smoothed)
+    gauss = norm(scale=np.sqrt(5))
+    smoothed = gauss.pdf(weight)
     smoothed = (1. / sigma) * smoothed
     smoothed = (1 - lamda) * smoothed + (lamda / Q)
-    new_weight = 1. / smoothed
+    # new_weight = 1. / smoothed
 
-    return new_weight
+    return smoothed
 
 def gaussian(x, sigma=5):
     a = 1. / (sigma * np.sqrt(2 * np.pi))
     b = - 0.5 * ((x / sigma) * (x / sigma))
     c = np.exp(b)
     return a * c
+
+def test_image():
+    image = read_image('../test_images/test_image.png')
+    plot_image(image)
+
+
+
+
+
+
 
 
 def main():
@@ -272,9 +278,12 @@ def main():
     for i in range(len(weights)):
         x.append(i)
         y.append(weights[i])
+    plt.scatter(x, y, color='teal', s=0.3)
+    plt.savefig('../ResultPics/weights.png')
 
-    plt.scatter(x, y, s=0.1)
     plt.show()
+
+
 
 
 

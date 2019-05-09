@@ -168,6 +168,7 @@ def multinomial_loss(predictions, soft_encodeds, weights):
     return losses
 
 def multinomial_loss2(predictions, soft_encodeds):
+
     """
     :param predictions: np.array, dimensions should be (n, h, w, q)
     :param soft_encoded: np.array, dimensions should be (n, h, w, q)
@@ -181,15 +182,13 @@ def multinomial_loss2(predictions, soft_encodeds):
         for h in range(predictions.shape[1]):
             loss = np.dot(soft_encodeds[i, h],
                                 np.log(predictions[i, h] + 0.000000000000000001).transpose())
+
             loss = np.diag(loss)
             loss = - loss
             loss = np.sum(loss)
             losses += loss
 
     return losses
-
-
-
 
 def main():
     x = np.ones((1, 224, 224, 1))
