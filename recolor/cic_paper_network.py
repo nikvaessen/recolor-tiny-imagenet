@@ -16,23 +16,20 @@ from keras import Sequential
 from keras.layers import Activation, Conv2D, BatchNormalization,\
     UpSampling2D, ZeroPadding2D
 from keras.activations import relu, softmax
-from keras import losses
 from keras import callbacks
 from keras import optimizers
 
 from data_generator import DataGenerator
-import image_logic
-from image_logic import num_bins, probability_dist_to_ab_tensor, probability_dist_to_ab
 
-import tensorflow as tf
+import constants as c
 
-# tf.enable_eager_execution()
 ################################################################################
 # Custom loss functions
 
 with open('../probabilities/waitlist.pickle', 'rb') as fp:
     weights = pickle.load(fp)
-weights = k.variable(weights)
+    weights = K.variable(weights)
+
 
 def get_weights(bin, weights=weights):
     print('BIN', bin)
@@ -88,20 +85,14 @@ def weighted_multinomial_loss(y_true, y_pred):
     return test6
 
 
-def l2_loss(y_true, y_pred):
-    y_pred = probability_dist_to_ab_tensor(y_pred)
-
-    return losses.mean_squared_error(y_true, y_pred)
-
-
 ################################################################################
 # Define the network as a Sequential Keras model
 
 required_input_shape_ = (64, 64, 1)
-required_output_shape = (64, 64, num_bins)
+required_output_shape = (64, 64, c.num_bins)
 
 
-def init_model(loss_function=l2_loss, batch_size=None):
+def init_model(loss_function=multinomial_loss, batch_size=None):
     model = Sequential()
 
     # layer 1: (64x64x1) --> (32x32x64)
@@ -194,7 +185,7 @@ def init_model(loss_function=l2_loss, batch_size=None):
     model.add(Conv2D(filters=256, kernel_size=3, padding="valid", strides=(1, 1)))
     model.add(Activation('relu'))
 
-    # # layer 9: (8x8x512)--> (8x8x512)
+    # # layer 9: (16x15x256)--> (32x32x128)
     # model.add(UpSampling2D())
     # model.add(Conv2D(filters=128, kernel_size=3, padding="valid", strides=(1, 1)))
     # model.add(Activation(relu))
@@ -206,40 +197,14 @@ def init_model(loss_function=l2_loss, batch_size=None):
 
     # output
     model.add(UpSampling2D((4, 4)))
-    model.add(Conv2D(filters=num_bins, kernel_size=1, strides=(1, 1)))
+    model.add(Conv2D(filters=c.num_bins, kernel_size=1, strides=(1, 1)))
     model.add(Activation(softmax))
 
-    # TODO add rescaling?
-    # model.add(Conv2D(filters=2, kernel_size=1, padding="valid", strides=(1, 1)))
-    # model.add(UpSampling2D(size=(4, 4)))
-    adam = optimizers.adam(lr=0.01)
+    adam = optimizers.adam()
 
     model.compile(loss=loss_function, optimizer=adam)
 
     return model
-
-
-def multinomial_loss2(predictions, soft_encodeds):
-    """
-    :param predictions: np.array, dimensions should be (n, h, w, q)
-    :param soft_encoded: np.array, dimensions should be (n, h, w, q)
-    Make sure all values are between 0 and 1, and that the sum of soft_encoded = 1
-    :return: loss
-    """
-
-    losses = 0
-    for i in range(predictions.shape[0]):
-        loss = 0
-        for h in range(predictions.shape[1]):
-            loss = np.dot(soft_encodeds[i, h],
-                                np.log(predictions[i, h] + 0.000000000000000001).transpose())
-
-            loss = np.diag(loss)
-            loss = - loss
-            loss = np.sum(loss)
-            losses += loss
-
-    return losses
 
 ################################################################################
 # Experimenting with running the model
@@ -248,7 +213,7 @@ def multinomial_loss2(predictions, soft_encodeds):
 def train_model_small_dataset_multinomial_loss():
     params = {
         'dim_in': (64, 64, 1),
-        'dim_out': (64, 64, num_bins),
+        'dim_out': (64, 64, c.num_bins),
         'batch_size': 8,
         'shuffle': True,
         'mode': DataGenerator.mode_grey_in_softencode_out
@@ -290,6 +255,7 @@ def train_model_small_dataset_multinomial_loss():
                         callbacks=[tb_callback])
 
     # take a sample and try to predict
+    import image_logic
 
     sample_rgb = image_logic.read_image(train_partition[18])
     sample_lab = image_logic.convert_rgb_to_lab(sample_rgb)
@@ -310,14 +276,11 @@ def train_model_small_dataset_multinomial_loss():
     image_logic.plot_img_converted(sample_rgb, lambda x: rgb)
 
 
-def get_gpu_info():
-    print(K.tensorflow_backend._get_available_gpus())
-
+################################################################################
 
 def main():
     train_model_small_dataset_multinomial_loss()
 
 
 if __name__ == '__main__':
-    get_gpu_info()
     main()
