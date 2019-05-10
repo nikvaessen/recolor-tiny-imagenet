@@ -42,6 +42,6 @@ lab_bin_bounding_boxes = _load_np_from_file(_path_bins,
 
 # Store the number of bins
 num_bins = len(lab_bin_centers)
-assert len(lab_bin_centers) == len*lab_bin_bounding_boxes
+assert len(lab_bin_centers) == len(lab_bin_bounding_boxes)
 
 

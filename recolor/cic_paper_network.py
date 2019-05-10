@@ -26,14 +26,14 @@ import constants as c
 ################################################################################
 # Custom loss functions
 
-with open('../probabilities/waitlist.pickle', 'rb') as fp:
-    weights = pickle.load(fp)
-    weights = K.variable(weights)
+# with open('../probabilities/waitlist.pickle', 'rb') as fp:
+#     weights = pickle.load(fp)
+#     weights = K.variable(weights)
 
 
-def get_weights(bin, weights=weights):
-    print('BIN', bin)
-    return weights[bin]
+# def get_weights(bin, weights=weights):
+#     print('BIN', bin)
+#     return weights[bin]
 
 
 def multinomial_loss(y_true, y_pred):
@@ -240,7 +240,7 @@ def train_model_small_dataset_multinomial_loss():
                                    batch_size=batch_size)
     # model.summary()
 
-    tb_callback = callbacks.TensorBoard(log_dir='../tensorboard',
+    tb_callback = callbacks.TensorBoard(log_dir='../tensorboard/test123',
                                         histogram_freq=0,
                                         write_graph=True,
                                         write_images=True)
