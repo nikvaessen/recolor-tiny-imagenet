@@ -27,14 +27,11 @@ import tensorflow as tf
 
 # tf.enable_eager_execution()
 ################################################################################
-with open('../probabilities/weights.pickle', 'rb') as fp:
-    weights = pickle.load(fp)
-################################################################################
 # Custom loss functions
 
-with open('../probabilities/weights.pickle', 'rb') as fp:
+with open('../probabilities/waitlist.pickle', 'rb') as fp:
     weights = pickle.load(fp)
-
+weights = k.variable(weights)
 
 def get_weights(bin, weights=weights):
     print('BIN', bin)
@@ -42,8 +39,6 @@ def get_weights(bin, weights=weights):
 
 
 def multinomial_loss(y_true, y_pred):
-    print('Used')
-    print('Prediction shape', y_pred.shape)
     """
     :param y_pred: np.array, dimensions should be (n, h, w, q)
     :param soft_encoded: np.array, dimensions should be (n, h, w, q)
@@ -64,16 +59,12 @@ def multinomial_loss(y_true, y_pred):
     return test5
 
 def weighted_multinomial_loss(y_true, y_pred):
-    print('Used')
-    print('Prediction shape', y_pred.shape)
     """
     :param y_pred: np.array, dimensions should be (n, h, w, q)
     :param soft_encoded: np.array, dimensions should be (n, h, w, q)
     Make sure all values are between 0 and 1, and that the sum of soft_encoded = 1
     :return: loss
     """
-
-
     print('Original shape', k.shape(y_true))
     test0 = k.max(y_true, axis=3)
     test0 = k.one_hot(test0, 262)
