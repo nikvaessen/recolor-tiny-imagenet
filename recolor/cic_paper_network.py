@@ -207,10 +207,10 @@ def train_model_small_dataset_multinomial_loss():
         'mode': DataGenerator.mode_grey_in_softencode_out
     }
 
-    with open('./train_ids.pickle', 'rb') as fp:
+    with open('./train_ids_tiny.pickle', 'rb') as fp:
         train_partition = pickle.load(fp)
 
-    with open('./validation_ids.pickle', 'rb') as fp:
+    with open('./validation_ids_tiny.pickle', 'rb') as fp:
         validation_partition = pickle.load(fp)
 
     # only use small amount of data :)
