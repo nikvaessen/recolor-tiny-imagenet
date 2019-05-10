@@ -12,6 +12,8 @@ import numpy as np
 import scipy.stats as stats
 import matplotlib.pyplot as plt
 
+from keras import backend as K
+
 from skimage import io, color, transform
 
 ################################################################################
@@ -291,7 +293,7 @@ def probability_dist_to_ab(pdist, T=1):
     # (batch_size, image_height, image_width, n_bins)
 
     assert len(pdist.shape) == 4
-
+    print(pdist.shape)
     batch_ab = np.empty((*pdist.shape[0:3], 2))
 
     for i in range(pdist.shape[0]):
@@ -307,6 +309,37 @@ def probability_dist_to_ab(pdist, T=1):
             for k in range(p.shape[1]):
                 bin_idx = bin_indexes[j, k]
                 ab = bincenters[bin_idx]
+                batch_ab[i, j, k, :] = ab
+
+    return batch_ab
+
+
+# tensorflow implementation of `probability_dist_to_ab`
+def probability_dist_to_ab_tensor(pdist):
+    # pdist is assumed to have shape:
+    # (batch_size, image_height, image_width, n_bins)
+
+    assert len(pdist.shape) == 4
+
+    batch_ab = K.zeros((pdist.shape[0], pdist.shape[1], pdist.shape[2], 2))
+    bin_indexes = K.argmax(pdist, axis=3)
+    print('bin indexes', bin_indexes)
+    bin_coords = K.constant(bincenters)
+    K.map_fn()
+
+    for i in range(pdist.shape[0]):
+        p = pdist[i, :, :, :]
+
+        # p -= np.max(p, axis=2)[:, :, np.newaxis]
+        # p = np.exp(np.log(p)/T)
+        # p /= p.sum()
+
+        bin_indexes = K.argmax(p, axis=2)
+        print(bin_indexes.shape)
+        for j in range(p.shape[0]):
+            for k in range(p.shape[1]):
+                bin_idx = bin_indexes[j, k]
+                ab = bin_coords[bin_idx]
                 batch_ab[i, j, k, :] = ab
 
     return batch_ab

@@ -20,8 +20,11 @@ from keras import losses
 from keras import backend as K
 
 from data_generator import DataGenerator
-from image_logic import num_bins, probability_dist_to_ab
+from image_logic import num_bins, probability_dist_to_ab_tensor, probability_dist_to_ab
 
+import tensorflow as tf
+
+# tf.enable_eager_execution()
 
 ################################################################################
 # Custom loss functions
@@ -74,7 +77,7 @@ def multinomial_loss2(predictions, soft_encodeds):
 
 
 def l2_loss(y_true, y_pred):
-    y_pred = probability_dist_to_ab(y_pred)
+    y_pred = probability_dist_to_ab_tensor(y_pred)
 
     return losses.mean_squared_error(y_true, y_pred)
 
@@ -88,11 +91,12 @@ with open('../probabilities/weights.pickle', 'rb') as fp:
     weights = pickle.load(fp)
 
 
-def init_model(loss_function=l2_loss):
+
+def init_model(loss_function=l2_loss, batch_size=None):
     model = Sequential()
 
     # layer 1: (64x64x1) --> (32x32x64)
-    model.add(ZeroPadding2D(input_shape=required_input_shape_, data_format='channels_last', name="layer1"))
+    model.add(ZeroPadding2D(input_shape=required_input_shape_, batch_size=batch_size, data_format='channels_last', name="layer1"))
     model.add(Conv2D(filters=64, kernel_size=3, padding="valid", strides=(1, 1)))
     model.add(Activation(relu))
     model.add(ZeroPadding2D())
@@ -199,7 +203,6 @@ def init_model(loss_function=l2_loss):
     # TODO add rescaling?
     # model.add(Conv2D(filters=2, kernel_size=1, padding="valid", strides=(1, 1)))
     # model.add(UpSampling2D(size=(4, 4)))
-
     model.compile(loss=loss_function, optimizer='adam')
 
     return model
@@ -307,7 +310,7 @@ def train_model_small_dataset():
     training_generator = DataGenerator(train_partition, **params)
     validation_generator = DataGenerator(validation_partition, **params)
 
-    model: Sequential = init_model(loss_function=l2_loss)
+    model: Sequential = init_model(loss_function=l2_loss, batch_size=batch_size)
     # model.summary()
 
     # To use with model generator/
