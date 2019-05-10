@@ -60,6 +60,7 @@ def load_image_grey_in_ab_out(image_path):
 
     return gray_channel, ab_channel
 
+
 ################################################################################
 # The DataGenerator class used to offload data i/o to CPU while GPU trains
 # network
@@ -124,11 +125,11 @@ class DataGenerator(keras.utils.Sequence):
         # Generate data
         for i, path in enumerate(batch_paths):
             # Store sample
-            #path = path.replace('\\', '/') # Activate for Windows
-            #print(path)
+            # path = path.replace('\\', '/') # Activate for Windows
+            # print(path)
             inp, outp = self.image_load_fn(path)
-            X[i, ] = inp
-            y[i, ] = outp
+            X[i,] = inp
+            y[i,] = outp
 
         return X, y
 
@@ -149,6 +150,7 @@ class DataGenerator(keras.utils.Sequence):
         X, y = self.__data_generation(batch_paths)
 
         return X, y
+
 
 ################################################################################
 # stores paths to tiny-imagenet files as pickled arrays. These arrays
@@ -214,9 +216,174 @@ def generate_data_paths_and_pickle():
 
     print("created test id's")
 
-# def get_available_classes():
-#     with open('../data/tiny-imagenet-200'):
-#         json.load()
+################################################################################
+# Create tiny tiny imagenet dataset
+# Aiming to accelerate training
+
+path_bincenters = "../np/bincenters.npz"
+if os.path.exists(path_bincenters):
+    bincenters = np.load(path_bincenters)['arr_0']
+else:
+    print("WARNING:", path_bincenters, " was not found, some methods in",
+          __name__, "will fail")
+
+
+def load_keys():
+    '''
+    This function loads the file keeping track of the labels of the image
+    key - > numerical value of the file (also the name of the folder they are in)
+    value - > text value of the file
+    '''
+    label_path = "../data/tiny-imagenet-200/words.txt"
+    keys = {}
+    with open(label_path) as f:
+        for line in f:
+            key, val = line.split('\t')
+            keys[key] = val
+    return keys
+
+def load_validation_keys():
+    '''
+    This function loads the file keeping track of the labels of the image
+    key - > numerical value of the file (also the name of the folder they are in)
+    value - > text value of the file
+    '''
+    label_path = "../data/tiny-imagenet-200/val/val_annotations.txt"
+    keys = {}
+    with open(label_path) as f:
+        for line in f:
+            key, val, _, _, _, _ = line.split('\t')
+            keys[key] = val
+    return keys
+
+
+def get_available_classes():
+    file_counter = 0
+    labels = load_keys()
+    train_path = "../data/tiny-imagenet-200/train"
+    counter_gray = 0
+
+    for subdirs, dirs, files in os.walk(train_path):
+        if len(files) == 500:
+            file_counter += 1
+
+            label = files[0][:9]
+            label_name = labels[label]
+            print(file_counter, ': ', label_name, '->', label)
+
+def get_tinytiny_dataset():
+    tiny_classes = [
+        'n01443537', 'n01910747', 'n01917289', 'n01950731', 'n02074367', 'n09256479', 'n02321529',
+        'n01855672', 'n02002724', 'n02056570', 'n02058221', 'n02085620', 'n02094433', 'n02099601', 'n02099712',
+        'n02106662', 'n02113799', 'n02123045', 'n02123394', 'n02124075', 'n02125311', 'n02129165', 'n02132136',
+        'n02480495', 'n02481823', 'n12267677', 'n01983481', 'n01984695', 'n02802426', 'n01641577'
+    ]
+
+    image_extension = ".JPEG"
+
+    # Training set
+    rootdir = "../data/tiny-imagenet-200/train"
+    train_ids = []
+    for subdirs, dirs, files in os.walk(rootdir):
+        if len(files) == 500 and files[0][:9] in tiny_classes:
+            for file in files:
+                path = os.path.join(subdirs, file).replace('\\', '/')
+                if os.path.splitext(file)[1] == image_extension and \
+                        not is_grey_image(path):
+                    train_ids.append(path)
+    with open('./train_ids_tiny.pickle', 'wb') as fp:
+        pickle.dump(train_ids, fp)
+
+    print("created training id's")
+
+    # # validation set
+    rootdir = "../data/tiny-imagenet-200/val"
+    valkeys = load_validation_keys()
+    validation_ids = []
+    print('test')
+    for subdirs, dirs, files in os.walk(rootdir):
+        for file in files:
+            if os.path.splitext(file)[1] == image_extension and valkeys[file] in tiny_classes:
+                # print(file)
+                path = os.path.join(subdirs, file).replace('\\', '/')
+                if os.path.splitext(file)[1] == image_extension and \
+                        not is_grey_image(path):
+                    validation_ids.append(path)
+
+    with open('./validation_ids_tiny.pickle', 'wb') as fp:
+        pickle.dump(validation_ids, fp)
+
+    print("created validation id's")
+    #
+    # # Test set -> Isn't annotated should still do ?
+    rootdir = "../data/tiny-imagenet-200/test"
+
+    test_ids = []
+    for subdirs, dirs, files in os.walk(rootdir):
+        for file in files:
+            path = os.path.join(subdirs, file).replace('\\', '/')
+            if os.path.splitext(file)[1] == image_extension and \
+                    not is_grey_image(path):
+                test_ids.append(path)
+    #
+    with open('./test_ids_tiny.pickle', 'wb') as fp:
+        pickle.dump(test_ids, fp)
+    #
+    print("created test id's")
+
+
+from image_logic import *
+
+
+def save_soft_encode(path):
+    image = read_image(path)
+    lab = convert_rgb_to_lab(image)
+    se = soft_encode_lab_img(lab)
+    new_path = '../data/soft_encoded/' + path[-16:-5] + '_soft_encoded.pickle'
+
+    with open(new_path, 'wb') as fp:
+        pickle.dump(se, fp)
+
+    return new_path
+
+def save_softencode_ondisk():
+
+    train_paths = []
+    with open('./train_ids_tiny.pickle', 'rb') as fp:
+        train_ids = pickle.load(fp)
+        print('There are currently', len(train_ids), 'images in the training set')
+        for path in train_ids:
+            new_path = save_soft_encode(path)
+            train_paths.append(new_path)
+
+    with open('../train_ids_soft_encoded.pickle', 'wb') as fp:
+        pickle.dump(train_paths, fp)
+    print('Soft encoded training done')
+
+    validation_paths = []
+    with open('./validation_ids_tiny.pickle', 'rb') as fp:
+        validation_ids = pickle.load(fp)
+        print('There are currently', len(validation_ids), 'images in the validation set')
+        for path in validation_ids:
+            new_path = save_soft_encode(path)
+            validation_ids.append(new_path)
+
+    with open('../validation_ids_soft_encoded.pickle', 'wb') as fp:
+        pickle.dump(validation_paths, fp)
+    print('Soft encoded validation ids done!')
+
+    test_paths = []
+    with open('./test_ids_tiny.pickle', 'rb') as fp:
+        test_ids = pickle.load(fp)
+        print('There are currently', len(test_ids), 'images in the test set')
+        for path in test_ids:
+            new_path = save_soft_encode(path)
+            test_paths.append(new_path)
+
+    with open('../test_ids_soft_encoded.pickle', 'wb') as fp:
+        pickle.dump(test_paths, fp)
+
+    print('Soft encoded test done!')
 
 
 
@@ -225,8 +392,13 @@ def generate_data_paths_and_pickle():
 
 
 if __name__ == '__main__':
-    generate_data_paths_and_pickle()
+    # generate_data_paths_and_pickle()
     # get_available_classes()
+    # get_tinytiny_dataset()
+    save_softencode_ondisk()
+
+
+
 
 
 

@@ -237,14 +237,14 @@ def compute_weights():
         newSomme += weights[key] * bin_probs[key]
     print(newSomme)
 
-    with open('../probabilities/weights.pickle', 'wb') as fp:
+    with open('../probabilities/weights2.pickle', 'wb') as fp:
         pickle.dump(weights, fp)
 
     waitlist = []
     for key in range(len(bin_probs)):
         waitlist.append(weights[key])
 
-    with open('../probabilities/waitlist.pickle', 'wb') as fp:
+    with open('../probabilities/waitlist2.pickle', 'wb') as fp:
         pickle.dump(waitlist, fp)
 
 
@@ -252,6 +252,7 @@ def probs_to_weight(weight, Q, sigma=5, lamda=0.5):
     # smoothed = weight
     gauss = norm(scale=np.sqrt(sigma))
     smoothed = gauss.pdf(weight)
+    smoothed = smoothed / sigma
     smoothed = (1 - lamda) * smoothed + (lamda / Q)
     smoothed = 1. / smoothed
 
@@ -294,7 +295,7 @@ def test_weight_loss():
 
 def main():
     compute_weights()
-    with open('../probabilities/weights.pickle', 'rb') as fp:
+    with open('../probabilities/weights2.pickle', 'rb') as fp:
         weights = pickle.load(fp)
 
     x = []
@@ -304,7 +305,7 @@ def main():
         y.append(weights[i])
 
     plt.scatter(x, y, color='teal', s=0.3)
-    plt.savefig('../ResultPics/weights.png')
+    plt.savefig('../ResultPics/weights2.png')
     plt.show()
 
 if __name__ == '__main__':

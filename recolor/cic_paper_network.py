@@ -28,7 +28,7 @@ import constants as c
 ################################################################################
 # Custom loss functions
 
-with open('../probabilities/waitlist.pickle', 'rb') as fp:
+with open('../probabilities/waitlist2.pickle', 'rb') as fp:
     weights = pickle.load(fp)
 weights = np.array(weights)
 
