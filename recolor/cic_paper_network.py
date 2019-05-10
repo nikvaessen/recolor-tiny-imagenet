@@ -29,52 +29,38 @@ import tensorflow as tf
 ################################################################################
 # Custom loss functions
 
+def get_weights(bin, weights=weights):
+    print('BIN', bin)
+    return weights[bin]
 
-def multinomial_loss(predictions, soft_encodeds, weights):
+def multinomial_loss(y_true, y_pred):
+    print('Used')
+    print('Prediction shape', y_pred.shape)
     """
-    :param predictions: np.array, dimensions should be (n, h, w, q)
+    :param y_pred: np.array, dimensions should be (n, h, w, q)
     :param soft_encoded: np.array, dimensions should be (n, h, w, q)
     Make sure all values are between 0 and 1, and that the sum of soft_encoded = 1
     :return: loss
     """
 
-    losses = 0
-    for i in range(predictions.shape[0]):
-        loss = 0
-        for h in range(predictions.shape[1]):
-            vs = np.array([weights[np.argmax(x)] for x in soft_encodeds[i, h]])
-            loss = vs[:, np.newaxis] * np.dot(soft_encodeds[i, h],
-                                              np.log(predictions[i, h] + 0.000000000000000001).transpose())
-            loss = np.diag(loss)
-            loss = - loss
-            loss = np.sum(loss)
-            losses += loss
 
-    return losses
+    test0 = k.argmax(y_true, axis=3)
+    test0 = k.cast(test0, k.floatx())
+    # test0 = k.map_fn(get_weights, test0)
 
+    test1 = k.categorical_crossentropy(y_true, y_pred, axis=3)
 
-def multinomial_loss2(predictions, soft_encodeds):
-    """
-    :param predictions: np.array, dimensions should be (n, h, w, q)
-    :param soft_encoded: np.array, dimensions should be (n, h, w, q)
-    Make sure all values are between 0 and 1, and that the sum of soft_encoded = 1
-    :return: loss
-    """
+    test2 = k.dot(test0, test1)
 
-    losses = 0
-    for i in range(predictions.shape[0]):
-        loss = 0
-        for h in range(predictions.shape[1]):
-            loss = np.dot(soft_encodeds[i, h],
-                          np.log(predictions[i, h] + 0.000000000000000001).transpose())
+    test3 = k.sum(test2, axis=1)
 
-            loss = np.diag(loss)
-            loss = - loss
-            loss = np.sum(loss)
-            losses += loss
+    test4 = k.sum(test3, axis=1)
 
-    return losses
+    test5 = - test4
 
+    test6 = k.sum(test5)
+
+    return test6
 
 def l2_loss(y_true, y_pred):
     y_pred = probability_dist_to_ab_tensor(y_pred)
@@ -208,56 +194,6 @@ def init_model(loss_function=l2_loss, batch_size=None):
     return model
 
 
-def get_weights(bin, weights=weights):
-    print('BIN', bin)
-    return weights[bin]
-
-def multinomial_loss(y_true, y_pred):
-    print('Used')
-    print('Prediction shape', y_pred.shape)
-    """
-    :param y_pred: np.array, dimensions should be (n, h, w, q)
-    :param soft_encoded: np.array, dimensions should be (n, h, w, q)
-    Make sure all values are between 0 and 1, and that the sum of soft_encoded = 1
-    :return: loss
-    """
-
-
-    test0 = k.argmax(y_true, axis=3)
-    test0 = k.cast(test0, k.floatx())
-    # test0 = k.map_fn(get_weights, test0)
-
-    test1 = k.categorical_crossentropy(y_true, y_pred, axis=3)
-
-    test2 = k.dot(test0, test1)
-
-    test3 = k.sum(test2, axis=1)
-
-    test4 = k.sum(test3, axis=1)
-
-    test5 = - test4
-
-    test6 = k.sum(test5)
-
-    return test6
-
-
-
-
-
-    # losses = 0
-    # for i in range(8):
-    #     loss = 0
-    #     for h in range(y_pred.shape[1]):
-    #         vs = np.array([weights[np.argmax(x)] for x in y_true[i, h]])
-    #         loss = vs[:, np.newaxis] * np.dot(y_true[i, h],
-    #                                           np.log(y_pred[i, h] + 0.000000000000000001).transpose())
-    #         loss = np.diag(loss)
-    #         loss = - loss
-    #         loss = np.sum(loss)
-    #         losses += loss
-    # print('Loss', losses)
-    # return losses
 
 
 def multinomial_loss2(predictions, soft_encodeds):
