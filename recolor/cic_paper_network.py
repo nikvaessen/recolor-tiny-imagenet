@@ -26,7 +26,9 @@ from image_logic import num_bins, probability_dist_to_ab_tensor, probability_dis
 import tensorflow as tf
 
 # tf.enable_eager_execution()
-
+################################################################################
+with open('../probabilities/weights.pickle', 'rb') as fp:
+    weights = pickle.load(fp)
 ################################################################################
 # Custom loss functions
 
@@ -49,9 +51,35 @@ def multinomial_loss(y_true, y_pred):
     :return: loss
     """
 
-    test0 = k.argmax(y_true, axis=3)
+    test1 = k.categorical_crossentropy(y_true, y_pred, axis=3)
+
+    test2 = k.sum(test1, axis=1)
+
+    test3 = k.sum(test2, axis=1)
+
+    test4 = - test3
+
+    test5 = k.sum(test4)
+
+    return test5
+
+def weighted_multinomial_loss(y_true, y_pred):
+    print('Used')
+    print('Prediction shape', y_pred.shape)
+    """
+    :param y_pred: np.array, dimensions should be (n, h, w, q)
+    :param soft_encoded: np.array, dimensions should be (n, h, w, q)
+    Make sure all values are between 0 and 1, and that the sum of soft_encoded = 1
+    :return: loss
+    """
+
+
+    print('Original shape', k.shape(y_true))
+    test0 = k.max(y_true, axis=3)
+    test0 = k.one_hot(test0, 262)
+    print('Shape', k.shape(test0))
     test0 = k.cast(test0, k.floatx())
-    # test0 = k.map_fn(get_weights, test0)
+    # test0 = k.map_fn(get_weights, (test0))
 
     test1 = k.categorical_crossentropy(y_true, y_pred, axis=3)
 
