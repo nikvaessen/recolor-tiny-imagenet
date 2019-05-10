@@ -11,16 +11,17 @@
 import pickle
 import numpy as np
 
-from keras import backend as k
+from keras import backend as K
 from keras import Sequential
 from keras.layers import Activation, Conv2D, BatchNormalization,\
     UpSampling2D, ZeroPadding2D
 from keras.activations import relu, softmax
 from keras import losses
-from keras import backend as K
 from keras import callbacks
+from keras import optimizers
 
 from data_generator import DataGenerator
+import image_logic
 from image_logic import num_bins, probability_dist_to_ab_tensor, probability_dist_to_ab
 
 import tensorflow as tf
@@ -46,17 +47,16 @@ def multinomial_loss(y_true, y_pred):
     :return: loss
     """
 
-    test1 = k.categorical_crossentropy(y_true, y_pred, axis=3)
+    test1 = K.categorical_crossentropy(y_true, y_pred, axis=3)
 
-    test2 = k.sum(test1, axis=1)
+    test2 = K.sum(test1, axis=1)
 
-    test3 = k.sum(test2, axis=1)
+    test3 = K.sum(test2, axis=1)
 
-    test4 = - test3
-
-    test5 = k.sum(test4)
+    test5 = K.sum(test3)
 
     return test5
+
 
 def weighted_multinomial_loss(y_true, y_pred):
     """
@@ -65,24 +65,25 @@ def weighted_multinomial_loss(y_true, y_pred):
     Make sure all values are between 0 and 1, and that the sum of soft_encoded = 1
     :return: loss
     """
-    print('Original shape', k.shape(y_true))
-    test0 = k.max(y_true, axis=3)
-    test0 = k.one_hot(test0, 262)
-    print('Shape', k.shape(test0))
-    test0 = k.cast(test0, k.floatx())
+
+    print('Original shape', K.shape(y_true))
+    test0 = K.max(y_true, axis=3)
+    test0 = K.one_hot(test0, 262)
+    print('Shape', K.shape(test0))
+    test0 = K.cast(test0, K.floatx())
     # test0 = k.map_fn(get_weights, (test0))
 
-    test1 = k.categorical_crossentropy(y_true, y_pred, axis=3)
+    test1 = K.categorical_crossentropy(y_true, y_pred, axis=3)
 
-    test2 = k.dot(test0, test1)
+    test2 = K.dot(test0, test1)
 
-    test3 = k.sum(test2, axis=1)
+    test3 = K.sum(test2, axis=1)
 
-    test4 = k.sum(test3, axis=1)
+    test4 = K.sum(test3, axis=1)
 
     test5 = - test4
 
-    test6 = k.sum(test5)
+    test6 = K.sum(test5)
 
     return test6
 
@@ -211,7 +212,9 @@ def init_model(loss_function=l2_loss, batch_size=None):
     # TODO add rescaling?
     # model.add(Conv2D(filters=2, kernel_size=1, padding="valid", strides=(1, 1)))
     # model.add(UpSampling2D(size=(4, 4)))
-    model.compile(loss=loss_function, optimizer='adam')
+    adam = optimizers.adam(lr=0.01)
+
+    model.compile(loss=loss_function, optimizer=adam)
 
     return model
 
@@ -277,17 +280,17 @@ def train_model_small_dataset_multinomial_loss():
                                         write_graph=True,
                                         write_images=True)
 
-    # To use with model generator/
+    # # To use with model generator/
     model.fit_generator(generator=training_generator,
                         validation_data=validation_generator,
                         use_multiprocessing=True,
-                        workers=1,
+                        workers=4,
                         verbose=1,
                         epochs=10,
                         callbacks=[tb_callback])
 
     # take a sample and try to predict
-    import image_logic
+
     sample_rgb = image_logic.read_image(train_partition[18])
     sample_lab = image_logic.convert_rgb_to_lab(sample_rgb)
 
