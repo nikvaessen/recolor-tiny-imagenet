@@ -240,13 +240,20 @@ def compute_weights():
     with open('../probabilities/weights.pickle', 'wb') as fp:
         pickle.dump(weights, fp)
 
+    waitlist = []
+    for key in range(len(bin_probs)):
+        waitlist.append(weights[key])
+
+    with open('../probabilities/waitlist.pickle', 'wb') as fp:
+        pickle.dump(waitlist, fp)
+
 
 def probs_to_weight(weight, Q, sigma=5, lamda=0.5):
-    gauss = norm(scale=np.sqrt(5))
+    # smoothed = weight
+    gauss = norm(scale=np.sqrt(sigma))
     smoothed = gauss.pdf(weight)
-    smoothed = (1. / sigma) * smoothed
     smoothed = (1 - lamda) * smoothed + (lamda / Q)
-    # new_weight = 1. / smoothed
+    smoothed = 1. / smoothed
 
     return smoothed
 

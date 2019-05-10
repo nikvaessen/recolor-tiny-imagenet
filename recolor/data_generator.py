@@ -214,12 +214,19 @@ def generate_data_paths_and_pickle():
 
     print("created test id's")
 
+# def get_available_classes():
+#     with open('../data/tiny-imagenet-200'):
+#         json.load()
+
+
+
 ################################################################################
 # Create pickled files when this file is run directly
 
 
 if __name__ == '__main__':
     generate_data_paths_and_pickle()
+    # get_available_classes()
 
 
 

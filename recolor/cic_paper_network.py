@@ -18,6 +18,8 @@ from keras.layers import Activation, Conv2D, BatchNormalization,\
 from keras.activations import relu, softmax
 from keras import callbacks
 from keras import optimizers
+import tensorflow as tf # Can comment out when not in test mode
+
 
 from data_generator import DataGenerator
 
@@ -26,14 +28,9 @@ import constants as c
 ################################################################################
 # Custom loss functions
 
-# with open('../probabilities/waitlist.pickle', 'rb') as fp:
-#     weights = pickle.load(fp)
-#     weights = K.variable(weights)
-
-
-# def get_weights(bin, weights=weights):
-#     print('BIN', bin)
-#     return weights[bin]
+with open('../probabilities/waitlist.pickle', 'rb') as fp:
+    weights = pickle.load(fp)
+weights = np.array(weights)
 
 
 def multinomial_loss(y_true, y_pred):
@@ -44,15 +41,12 @@ def multinomial_loss(y_true, y_pred):
     :return: loss
     """
 
-    test1 = K.categorical_crossentropy(y_true, y_pred, axis=3)
+    loss = K.categorical_crossentropy(y_true, y_pred, axis=3) # Cross entropy
+    loss = K.sum(loss, axis=1) # Sum over all width vectors
+    loss = K.sum(loss, axis=1) # Sum over all height vectors
+    loss = K.sum(loss) # Sum over all images in the batch
 
-    test2 = K.sum(test1, axis=1)
-
-    test3 = K.sum(test2, axis=1)
-
-    test5 = K.sum(test3)
-
-    return test5
+    return loss
 
 
 def weighted_multinomial_loss(y_true, y_pred):
@@ -63,26 +57,19 @@ def weighted_multinomial_loss(y_true, y_pred):
     :return: loss
     """
 
-    print('Original shape', K.shape(y_true))
-    test0 = K.max(y_true, axis=3)
-    test0 = K.one_hot(test0, 262)
-    print('Shape', K.shape(test0))
-    test0 = K.cast(test0, K.floatx())
-    # test0 = k.map_fn(get_weights, (test0))
+    v = K.argmax(y_true, axis=3)
+    v = K.one_hot(v, 262)
+    v = v * weights
+    v = K.sum(v, axis=3)
 
-    test1 = K.categorical_crossentropy(y_true, y_pred, axis=3)
+    loss = K.categorical_crossentropy(y_true, y_pred, axis=3)  # Cross entropy
+    loss = K.dot(v, loss)
+    loss = K.sum(loss, axis=1)  # Sum over all width vectors
+    loss = K.sum(loss, axis=1)  # Sum over all height vectors
+    loss = K.sum(loss)  # Sum over all images in the batch
 
-    test2 = K.dot(test0, test1)
+    return loss
 
-    test3 = K.sum(test2, axis=1)
-
-    test4 = K.sum(test3, axis=1)
-
-    test5 = - test4
-
-    test6 = K.sum(test5)
-
-    return test6
 
 
 ################################################################################
@@ -206,6 +193,7 @@ def init_model(loss_function=multinomial_loss, batch_size=None):
 
     return model
 
+
 ################################################################################
 # Experimenting with running the model
 
@@ -236,7 +224,7 @@ def train_model_small_dataset_multinomial_loss():
     training_generator = DataGenerator(train_partition, **params)
     validation_generator = DataGenerator(validation_partition, **params)
 
-    model: Sequential = init_model(loss_function=multinomial_loss,
+    model: Sequential = init_model(loss_function=weighted_multinomial_loss,
                                    batch_size=batch_size)
     # model.summary()
 
@@ -256,8 +244,28 @@ def train_model_small_dataset_multinomial_loss():
 
     # take a sample and try to predict
     import image_logic
-
+    # Image 1
     sample_rgb = image_logic.read_image(train_partition[18])
+    sample_lab = image_logic.convert_rgb_to_lab(sample_rgb)
+
+    sample_grey = sample_lab[:, :, 0:1]
+    sample_grey = sample_grey.reshape(1, *sample_grey.shape)
+
+    output = model.predict(sample_grey)
+
+    ab = image_logic.probability_dist_to_ab(output)
+
+    lab = np.zeros(sample_lab.shape)
+    lab[:, :, 0:1] = sample_grey
+    lab[:, :, 1:] = ab
+
+    rgb = image_logic.convert_lab_to_rgb(lab)
+
+    image_logic.plot_img_converted(sample_rgb, lambda x: rgb)
+
+    ## Image 2
+
+    sample_rgb = image_logic.read_image(train_partition[30])
     sample_lab = image_logic.convert_rgb_to_lab(sample_rgb)
 
     sample_grey = sample_lab[:, :, 0:1]
@@ -281,6 +289,52 @@ def train_model_small_dataset_multinomial_loss():
 def main():
     train_model_small_dataset_multinomial_loss()
 
+def test():
+    # v = K.argmax(y_true, axis=3)
+    # v = K.one_hot(v, 262)
+    #
+    # weights = K.variable(weight_list)
+    # test = weights * v
+    # print('Test', test.shape)
+    # weights = K.expand_dims(weights, axis=0)
+    # weights = K.repeat_elements(weights, rep=64, axis=0)
+    # print('update')
+    #
+    # print('update')
+    # print(weights.shape)
+    # v = K.dot(v, weights)
+
+    ############################""
+    a = np.array([[[5, 2, 6],
+                    [7, 7, 3],
+                    [0, 0, 0],
+                    [6, 6, 5]],
+
+                   [[2, 2, 3],
+                    [1, 3, 3],
+                    [8, 1, 9],
+                    [0, 5, 7]]])
+    weights = np.array([2, 0, 1])
+    a = K.constant(a)
+    b = K.argmax(a, axis=2)
+    c = K.one_hot(b, 3)
+    d = c * weights
+    e = K.sum(d, axis=2)
+    sess = tf.Session()
+    print(sess.run(a))
+    print('*_' * 10)
+    print(sess.run(b))
+    print('*_' * 10)
+    print(sess.run(c))
+    print('*_' * 10)
+    print(sess.run(d))
+    print('*_' * 10)
+    print(sess.run(e))
+
+
+
+
 
 if __name__ == '__main__':
     main()
+    # test()
