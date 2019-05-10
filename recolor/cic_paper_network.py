@@ -8,16 +8,17 @@
 #
 ################################################################################
 
-import time
-from keras import backend as k
 import pickle
 import numpy as np
+
+from keras import backend as k
 from keras import Sequential
 from keras.layers import Activation, Conv2D, BatchNormalization,\
     UpSampling2D, ZeroPadding2D
 from keras.activations import relu, softmax
 from keras import losses
 from keras import backend as K
+from keras import callbacks
 
 from data_generator import DataGenerator
 from image_logic import num_bins, probability_dist_to_ab_tensor, probability_dist_to_ab
@@ -29,9 +30,14 @@ import tensorflow as tf
 ################################################################################
 # Custom loss functions
 
+with open('../probabilities/weights.pickle', 'rb') as fp:
+    weights = pickle.load(fp)
+
+
 def get_weights(bin, weights=weights):
     print('BIN', bin)
     return weights[bin]
+
 
 def multinomial_loss(y_true, y_pred):
     print('Used')
@@ -42,7 +48,6 @@ def multinomial_loss(y_true, y_pred):
     Make sure all values are between 0 and 1, and that the sum of soft_encoded = 1
     :return: loss
     """
-
 
     test0 = k.argmax(y_true, axis=3)
     test0 = k.cast(test0, k.floatx())
@@ -62,6 +67,7 @@ def multinomial_loss(y_true, y_pred):
 
     return test6
 
+
 def l2_loss(y_true, y_pred):
     y_pred = probability_dist_to_ab_tensor(y_pred)
 
@@ -73,9 +79,6 @@ def l2_loss(y_true, y_pred):
 
 required_input_shape_ = (64, 64, 1)
 required_output_shape = (64, 64, num_bins)
-with open('../probabilities/weights.pickle', 'rb') as fp:
-    weights = pickle.load(fp)
-
 
 
 def init_model(loss_function=l2_loss, batch_size=None):
@@ -194,8 +197,6 @@ def init_model(loss_function=l2_loss, batch_size=None):
     return model
 
 
-
-
 def multinomial_loss2(predictions, soft_encodeds):
     """
     :param predictions: np.array, dimensions should be (n, h, w, q)
@@ -217,16 +218,18 @@ def multinomial_loss2(predictions, soft_encodeds):
             losses += loss
 
     return losses
+
 ################################################################################
 # Experimenting with running the model
 
-def train_model_small_dataset():
+
+def train_model_small_dataset_multinomial_loss():
     params = {
         'dim_in': (64, 64, 1),
         'dim_out': (64, 64, num_bins),
         'batch_size': 8,
         'shuffle': True,
-        'mode': DataGenerator.mode_grey_in_ab_out
+        'mode': DataGenerator.mode_grey_in_softencode_out
     }
 
     with open('./train_ids.pickle', 'rb') as fp:
@@ -246,15 +249,23 @@ def train_model_small_dataset():
     training_generator = DataGenerator(train_partition, **params)
     validation_generator = DataGenerator(validation_partition, **params)
 
-    model: Sequential = init_model(loss_function=l2_loss, batch_size=batch_size)
+    model: Sequential = init_model(loss_function=multinomial_loss,
+                                   batch_size=batch_size)
     # model.summary()
+
+    tb_callback = callbacks.TensorBoard(log_dir='../tensorboard',
+                                        histogram_freq=0,
+                                        write_graph=True,
+                                        write_images=True)
 
     # To use with model generator/
     model.fit_generator(generator=training_generator,
                         validation_data=validation_generator,
                         use_multiprocessing=True,
                         workers=1,
-                        verbose=1)
+                        verbose=1,
+                        epochs=10,
+                        callbacks=[tb_callback])
 
     # take a sample and try to predict
     import image_logic
@@ -282,7 +293,7 @@ def get_gpu_info():
 
 
 def main():
-    train_model_small_dataset()
+    train_model_small_dataset_multinomial_loss()
 
 
 if __name__ == '__main__':
