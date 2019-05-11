@@ -55,6 +55,10 @@ def read_image(fn: str):
     return io.imread(fn)
 
 
+def save_image(fn, img):
+    io.imsave(fn, img)
+
+
 def plot_image(x: np.ndarray):
     plt.figure(0)
     plt.imshow(x)

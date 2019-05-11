@@ -21,7 +21,7 @@ from keras import optimizers
 import tensorflow as tf # Can comment out when not in test mode
 
 
-from data_generator import DataGenerator
+from keras_util import DataGenerator, OutputProgress
 
 import constants as c
 
@@ -195,10 +195,11 @@ def init_model(loss_function=multinomial_loss, batch_size=None):
 
 
 ################################################################################
-# Experimenting with running the model
+# methods helpful for using the model
 
 
 def train_model_small_dataset_multinomial_loss():
+    # define sensible default parameters
     params = {
         'dim_in': (64, 64, 1),
         'dim_out': (64, 64, c.num_bins),
@@ -212,14 +213,12 @@ def train_model_small_dataset_multinomial_loss():
 
     with open('./validation_ids_tiny.pickle', 'rb') as fp:
         validation_partition = pickle.load(fp)
+    # define data generators
+    train_partition = c.training_set_file_paths
+    validation_partition = c.validation_set_file_paths
 
-    # only use small amount of data :)
-    batch_size = params['batch_size']
-    train_partition = train_partition[0:4*batch_size]
-    validation_partition = validation_partition[0:4*batch_size]
-
-    print("using {} training samples".format(len(train_partition)))
-    print("using {} validation samples".format(len(validation_partition)))
+    train_partition = train_partition[0:4*8]
+    validation_partition = validation_partition[0:4*8]
 
     training_generator = DataGenerator(train_partition, **params)
     validation_generator = DataGenerator(validation_partition, **params)
@@ -227,22 +226,33 @@ def train_model_small_dataset_multinomial_loss():
     model: Sequential = init_model(loss_function=weighted_multinomial_loss,
                                    batch_size=batch_size)
     # model.summary()
+    model: Sequential = init_model(loss_function=multinomial_loss,
+                                   batch_size=params['batch_size'])
 
-    tb_callback = callbacks.TensorBoard(log_dir='../tensorboard/test123',
-                                        histogram_freq=0,
+    tb_callback = callbacks.TensorBoard(log_dir='../tensorboard',
+                                        histogram_freq=5,
                                         write_graph=True,
                                         write_images=True)
 
-    # # To use with model generator/
+    lr_callback = callbacks.ReduceLROnPlateau()
+
+    op_callback = OutputProgress(train_partition[5:8], required_input_shape_,
+                                 "../tensorboard/")
+
+    save_callback = callbacks.ModelCheckpoint("weights.{epoch:02d}-{val_loss:.2f}.hdf5", period=2)
+
+    # To use with model generator/
     model.fit_generator(generator=training_generator,
                         validation_data=validation_generator,
                         use_multiprocessing=True,
                         workers=4,
                         verbose=1,
                         epochs=10,
-                        callbacks=[tb_callback])
+                        callbacks=[tb_callback, lr_callback, op_callback, save_callback])
 
     # take a sample and try to predict
+    import image_util as image_logic
+
     import image_logic
     # Image 1
     sample_rgb = image_logic.read_image(train_partition[18])
