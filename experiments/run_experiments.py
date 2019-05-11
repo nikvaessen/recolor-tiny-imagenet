@@ -7,9 +7,8 @@
 import sys
 import os
 import yaml
-import json
 
-from functools import reduce
+import time
 
 from recolor.cic_paper_network import TrainingConfig, train
 
@@ -145,8 +144,14 @@ def main():
 
     training_config = get_training_config(yaml_config, storage_path)
 
+    start_training_timestamp = time.time()
     model = training_config.get_init_model()
     train(model, training_config)
+    end_training_timestamp = time.time()
+
+    time_elapsed = end_training_timestamp - start_training_timestamp
+
+    print("training took", time_elapsed, "seconds")
 
     should_shutdown = yaml_config['shutdown-on-completion']
     if should_shutdown:

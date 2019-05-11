@@ -30,13 +30,21 @@ def load_image_grey_in_softencode_out(image_path):
     :param image_path: the path to the image
     :return: tuple of x and y (input and output)
     """
+    filename = os.path.split(image_path)[-1]
+    filename = os.path.splitext(filename)[0]
+    se_filename = os.path.join(c.soft_encoding_training_and_val_dir,
+                               filename + c.soft_encoding_filename_postfix)
+
     rgb = image_util.read_image(image_path)
     cielab = image_util.convert_rgb_to_lab(rgb)
 
     gray_channel = cielab[:, :, 0]
     gray_channel = gray_channel[:, :, np.newaxis]
 
-    soft_encoding = image_util.soft_encode_lab_img(cielab)
+    if os.path.exists(se_filename):
+        soft_encoding = np.load(se_filename)['arr_0']
+    else:
+        soft_encoding = image_util.soft_encode_lab_img(cielab)
 
     return gray_channel, soft_encoding
 
