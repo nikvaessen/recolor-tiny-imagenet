@@ -75,6 +75,7 @@ def get_training_config(yaml_config, storage_path) -> TrainingConfig:
     image_paths_to_save = save[0]['colorisation-progress'][1]["path_to_colorisation_images"]
     image_paths_to_save = os.path.abspath(image_paths_to_save)
     image_progression_log_dir = os.path.join(storage_path, progression_subfolder)
+    image_progression_period = save[0]['colorisation-progress'][2]["progression_period"]
 
     periodically_save_model = save[1]['periodically-save-model'][0]['save_periodically']
     periodically_save_model_period = save[1]['periodically-save-model'][1]['psm_period']
@@ -105,9 +106,10 @@ def get_training_config(yaml_config, storage_path) -> TrainingConfig:
         save_colored_image_progress,
         image_paths_to_save,
         image_progression_log_dir,
+        image_progression_period,
         periodically_save_model,
-        periodically_save_model_period,
         periodically_save_model_path,
+        periodically_save_model_period,
         save_best_model,
         save_best_model_path
     )

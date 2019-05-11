@@ -253,13 +253,13 @@ class OutputProgress(keras.callbacks.Callback):
         self.must_convert_pdist=must_convert_pdist
 
     def on_epoch_end(self, epoch, logs=None):
-        if epoch % self.every_n_epochs == 0:
+        if epoch + 1 % self.every_n_epochs == 0:
             self.save_images(str(epoch))
 
     def on_train_end(self, logs=None):
         self.save_images('training_end')
 
-    def save_images(self, epoch_string:str):
+    def save_images(self, epoch_string: str):
         y = self.model.predict(self.batch)
 
         if self.must_convert_pdist:
@@ -274,7 +274,7 @@ class OutputProgress(keras.callbacks.Callback):
             lab[:, :, 0:] = l
             lab[:, :, 1:] = ab
 
-            rgb = image_util.convert_lab_to_rgb(lab)
+            rgb = (image_util.convert_lab_to_rgb(lab) * 255).astype(np.uint8)
             path = os.path.join(self.root_dir,
                                 "img_{}_epoch_{}.png".format(idx, epoch_string))
             image_util.save_image(path, rgb)

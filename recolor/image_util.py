@@ -287,7 +287,7 @@ def probability_dist_to_ab(pdist, T=1):
     # (batch_size, image_height, image_width, n_bins)
 
     assert len(pdist.shape) == 4
-    print(pdist.shape)
+    # print(pdist.shape)
     batch_ab = np.empty((*pdist.shape[0:3], 2))
 
     for i in range(pdist.shape[0]):
@@ -298,7 +298,7 @@ def probability_dist_to_ab(pdist, T=1):
         # p /= p.sum()
 
         bin_indexes = np.argmax(p, axis=2)
-        print(bin_indexes.shape)
+        # print(bin_indexes.shape)
         for j in range(p.shape[0]):
             for k in range(p.shape[1]):
                 bin_idx = bin_indexes[j, k]
