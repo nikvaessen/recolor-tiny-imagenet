@@ -146,6 +146,10 @@ def one_hot_encode_rgb_img(img: np.ndarray,
 def soft_encode_rgb_img(img, n=5, binsize=rgb_preferred_bin_size):
     raise NotImplementedError()
 
+def rgb_to_softencode(path):
+    print(path)
+    image = read_image(path)
+
 
 def bin_lab_slow(img, bins=lab_bin_bounding_boxes):
     c = img[:, :, 1:]
@@ -749,4 +753,6 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    # main()
+    path = '../data/tiny-imagenet-200/train/n02058221/images/n02058221_3.JPEG'
+    rgb_to_softencode(path)
