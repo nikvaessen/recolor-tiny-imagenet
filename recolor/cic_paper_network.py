@@ -197,7 +197,9 @@ class TrainingConfig:
     modes = [DataGenerator.mode_grey_in_softencode_out,
              DataGenerator.mode_grey_in_ab_out]
 
-    datasets = [c.tiny_imagenet_dataset_full, c.tiny_imagenet_dataset_tiny]
+    datasets = [c.tiny_imagenet_dataset_full,
+                c.tiny_imagenet_dataset_tiny,
+                c.debug_dataset]
 
     losses = [c.multinomial_loss, c.weighted_multinomial_loss]
 
@@ -217,6 +219,7 @@ class TrainingConfig:
                  save_colored_image_progress,
                  image_paths_to_save,
                  image_progression_log_dir,
+                 image_progression_period,
                  periodically_save_model,
                  periodically_save_model_path,
                  periodically_save_model_period,
@@ -242,6 +245,7 @@ class TrainingConfig:
         self.save_colored_image_progress = save_colored_image_progress
         self.image_paths_to_save = image_paths_to_save
         self.image_progression_log_dir = image_progression_log_dir
+        self.image_progression_period = image_progression_period
 
         self.periodically_save_model = periodically_save_model
         self.periodically_save_model_path = periodically_save_model_path
@@ -270,9 +274,12 @@ class TrainingConfig:
         if self.dataset == c.tiny_imagenet_dataset_full:
             training_path = c.training_set_full_file_paths
             validation_path = c.validation_set_full_file_paths
-        else:
+        elif self.dataset == c.tiny_imagenet_dataset_tiny:
             training_path = c.training_set_tiny_file_paths
             validation_path = c.validation_set_tiny_file_paths
+        else:
+            training_path = c.training_set_debug_file_paths
+            validation_path = c.validation_set_debug_file_paths
 
         print('using dataset:', self.dataset)
         print("using {} training samples".format(len(training_path)))
@@ -313,25 +320,31 @@ def train(model: Sequential, config: TrainingConfig):
     callback_list = list()
 
     if config.use_tensorboard:
+        print("using tensorboard")
         tb_callback = callbacks.TensorBoard(log_dir=config.tensorboard_log_dir)
         callback_list.append(tb_callback)
 
     if config.reduce_lr_on_plateau:
+        print("reducing learning rate on plateau")
         lr_callback = callbacks.ReduceLROnPlateau()
         callback_list.append(lr_callback)
 
     if config.save_colored_image_progress:
+        print("saving progression every {} epochs".format(config.image_progression_period))
         op_callback = OutputProgress(config.image_paths_to_save,
                                      config.dim_in,
-                                     config.image_progression_log_dir)
+                                     config.image_progression_log_dir,
+                                     every_n_epochs=config.image_progression_period)
         callback_list.append(op_callback)
 
     if config.periodically_save_model:
+        print("saving model every {} epcohs".format(config.periodically_save_model_period))
         p_save_callback = callbacks.ModelCheckpoint(config.periodically_save_model_path,
                                                     period=config.periodically_save_model_period)
         callback_list.append(p_save_callback)
 
     if config.save_best_model:
+        print("saving best model")
         best_save_callback = callbacks.ModelCheckpoint(config.save_best_model_path,
                                                        save_best_only=True)
         callback_list.append(best_save_callback)
