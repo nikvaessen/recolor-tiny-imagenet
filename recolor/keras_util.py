@@ -12,8 +12,10 @@ import pickle
 import numpy as np
 import keras
 
-from . import image_util
-from . import constants as c
+# from . import image_util
+import image_util
+# from . import constants as c
+import constants as c
 
 ################################################################################
 # Define different ways of reading the data
@@ -101,6 +103,7 @@ class DataGenerator(keras.utils.Sequence):
         self.dim_in = dim_in
         self.dim_out = dim_out
         self.batch_size = batch_size
+        self.leftovers = c.n_training_set_tiny % batch_size
         self.data_paths = data_paths
         self.shuffle = shuffle
 
@@ -112,7 +115,7 @@ class DataGenerator(keras.utils.Sequence):
         else:
             raise ValueError("expected mode to be one of", DataGenerator.modes)
 
-        self.indexes = []
+        self.indices = []
 
         self.on_epoch_end()
 
@@ -121,10 +124,13 @@ class DataGenerator(keras.utils.Sequence):
         If shuffle is set to True: shuffles input at the beginning of each epoch
         :return:
         '''
-        self.indexes = np.arange(len(self.data_paths))
 
         if self.shuffle:
-            np.random.shuffle(self.indexes)
+            self.indices = np.arange(len(self.data_paths))
+            np.random.shuffle(self.indices)
+            self.indices = self.indices[:-self.leftovers]
+        else:
+            self.indices = np.arange(len(self.data_paths) - self.leftovers)
 
     # list_IDs_temp : Ids from the batch to be generated
     def __data_generation(self, batch_paths):
@@ -147,16 +153,16 @@ class DataGenerator(keras.utils.Sequence):
 
     def __len__(self):
         # Denotes the number of batches per epoch
-        return int(np.floor(len(self.indexes) / self.batch_size))
+        return int(np.floor(len(self.indices) / self.batch_size))
 
     def __getitem__(self, index):
         # Generate one batch of data
-        # Generate indexes of the batch
-        indexes = self.indexes[
+        # Generate indices of the batch
+        indices = self.indices[
                   index * self.batch_size:(index + 1) * self.batch_size]
 
         # Find list of IDs
-        batch_paths = [self.data_paths[k] for k in indexes]
+        batch_paths = [self.data_paths[k] for k in indices]
 
         # Generate data
         X, y = self.__data_generation(batch_paths)
@@ -293,8 +299,9 @@ class OutputProgress(keras.callbacks.Callback):
 
 
 ################################################################################
-# Create tiny tiny imagenet dataset
+# Create soft_encode
 # Aiming to accelerate training
+#
 
 lab_bin_centers = c.lab_bin_centers
 
@@ -472,17 +479,103 @@ def save_softencode_ondisk():
 
     print('Soft encoded test done!')
 
+def count_number_of_images():
+
+    with open('../train_ids_soft_encoded.pickle', 'rb') as fp:
+        train_paths = pickle.load(fp)
+    print("Number of training images: ", len(train_paths))
+
+    with open('../validation_ids_soft_encoded.pickle', 'rb') as fp:
+        validation_paths = pickle.load(fp)
+    print("Number of validation images: ", len(validation_paths))
+
+    with open('../test_ids_soft_encoded.pickle', 'rb') as fp:
+        test_paths = pickle.load(fp)
+    print("Number of training images: ", len(test_paths))
+
+################################################################################
+# Create compress objects for inputs and outputs
+#
+
+def save_input_output(path, newpath):
+    image = image_util.read_image(path)
+    lab = image_util.convert_rgb_to_lab(image)
+    se = image_util.soft_encode_lab_img(lab)
+
+    new_path = '../data/npz-tiny-imagenet/' + newpath + '_intput_output.npz'
+    np.savez_compressed(new_path, input=lab, output=se)
+    return new_path
+
+
+def save_input_output_ondisk():
+
+    train_paths = []
+    i = 0
+    with open('./train_ids_tiny.pickle', 'rb') as fp:
+        train_ids = pickle.load(fp)
+        print('There are currently', len(train_ids), 'images in the training set')
+        for path in train_ids:
+            if i % 1000 == 0:
+                print('Saved ', i, 'documents')
+            namepath = 'train/' + path[49:-5]
+            new_path = save_input_output(path, namepath)
+            train_paths.append(new_path)
+            i += 1
+
+    with open('../train_ids_npz.pickle', 'wb') as fp:
+        pickle.dump(train_paths, fp)
+    print('Soft encoded training done')
+
+    validation_paths = []
+    i = 0
+    with open('./validation_ids_tiny.pickle', 'rb') as fp:
+        validation_ids = pickle.load(fp)
+        print('There are currently', len(validation_ids), 'images in the validation set')
+        for path in validation_ids:
+            if i % 1000 == 0:
+                print('Saved', i, 'documents')
+            i += 1
+            namepath = 'val/' + path[37:-5]
+            new_path = save_input_output(path, namepath)
+            validation_ids.append(new_path)
+
+    with open('../validation_ids_npz.pickle', 'wb') as fp:
+        pickle.dump(validation_paths, fp)
+    print('Soft encoded validation ids done!')
+
+    test_paths = []
+    i = 0
+    with open('./test_ids_tiny.pickle', 'rb') as fp:
+        test_ids = pickle.load(fp)
+        print('There are currently', len(test_ids), 'images in the test set')
+        for path in test_ids:
+            if i % 1000 == 0:
+                print('Saved', i, 'documents')
+            i += 1
+            name_path = 'test/' + path[38:-5]
+            new_path = save_input_output(path, name_path)
+            test_paths.append(new_path)
+            break
+    #
+    with open('../test_ids_npz.pickle', 'wb') as fp:
+        pickle.dump(test_paths, fp)
+
+    print('Soft encoded test done!')
+
+
 
 ################################################################################
 # Create pickled files for used by DataGenerator when this file is run directly
+
 
 
 if __name__ == '__main__':
     # generate_data_paths_and_pickle()
     # get_available_classes()
     # get_tinytiny_dataset()
-    save_softencode_ondisk()
+    # save_softencode_ondisk()
     # check_already_encoded_images()
+    save_input_output_ondisk()
 
 
 
