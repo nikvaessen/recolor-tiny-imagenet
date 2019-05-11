@@ -78,7 +78,10 @@ weights = np.array(load_pickled_data(_weight_path))
 ################################################################################
 # references to data (each is an array of relative file paths
 
+
 # full tiny-imagenet-200
+tiny_imagenet_dataset_full = 'tiny-imagenet-dataset-full'
+
 _training_set_full_file_name = 'train_ids.pickle'
 _training_set_full_path = os.path.join(_root_dir, _training_set_full_file_name)
 training_set_full_file_paths = load_pickled_data(_training_set_full_path)
@@ -92,6 +95,8 @@ _test_set_full_path = os.path.join(_root_dir, _training_set_full_file_name)
 test_set_full_file_paths = load_pickled_data(_training_set_full_path)
 
 # subset of tiny-imagenet-200
+tiny_imagenet_dataset_tiny = 'tiny-imagenet-dataset-tiny'
+
 _training_set_tiny_file_name = 'train_ids.pickle'
 _training_set_tiny_path = os.path.join(_root_dir, _training_set_tiny_file_name)
 training_set_tiny_file_paths = load_pickled_data(_training_set_tiny_path)
@@ -103,3 +108,12 @@ validation_set_tiny_file_paths = load_pickled_data(_training_set_tiny_path)
 _test_set_tiny_file_name = 'test_ids.pickle'
 _test_set_tiny_path = os.path.join(_root_dir, _training_set_tiny_file_name)
 test_set_tiny_file_paths = load_pickled_data(_training_set_tiny_path)
+
+
+################################################################################
+# define valid loss functions
+
+l2_loss = "l2_loss"
+
+multinomial_loss = "multinomial_loss"
+weighted_multinomial_loss = "weighted_multinomial_loss"

@@ -1,105 +1,172 @@
-import numpy as np
+################################################################################
+# Will run each an experiment given by a 'yaml' experiment configuration
+#
+# Author(s): Nik Vaessen
+################################################################################
 
-from keras import Sequential
-from keras import callbacks
+import sys
+import os
+import yaml
 
-from recolor.keras_util import DataGenerator, OutputProgress
+from recolor.cic_paper_network import TrainingConfig, train
 
-import recolor.constants as c
+################################################################################
 
-from recolor.cic_paper_network import init_model, multinomial_loss, required_input_shape_
+models_subfolder = 'models'
+tensorboard_subfolder = 'tensorboard-log-dir'
+progression_subfolder = 'progression'
+subfolders = [models_subfolder, tensorboard_subfolder, progression_subfolder]
 
 
-def train_model_small_dataset_multinomial_loss():
-    # define sensible default parameters
-    params = {
-        'dim_in': (64, 64, 1),
-        'dim_out': (64, 64, c.num_lab_bins),
-        'batch_size': 8,
-        'shuffle': True,
-        'mode': DataGenerator.mode_grey_in_softencode_out
-    }
+def create_result_dir(yaml_config_dic, storage_dir_path):
+    name = yaml_config_dic['name']
 
-    # define data generators
-    train_partition = c.training_set_tiny_file_paths
-    validation_partition = c.validation_set_tiny_file_paths
+    experiment_path = os.path.join(storage_dir_path, name)
 
-    train_partition = train_partition[0:4*8]
-    validation_partition = validation_partition[0:4*8]
+    if not os.path.isdir(experiment_path):
+        os.mkdir(experiment_path)
 
-    training_generator = DataGenerator(train_partition, **params)
-    validation_generator = DataGenerator(validation_partition, **params)
+    index = 0
+    while True:
+        if index > 100:
+            print("please do not run so many experiments on the same machine!")
+            exit()
 
-    # model.summary()
-    model: Sequential = init_model(loss_function=multinomial_loss,
-                                   batch_size=params['batch_size'])
+        experiment_path_subfolder = os.path.join(experiment_path, "run{}".format(index))
 
-    tb_callback = callbacks.TensorBoard(log_dir='../tensorboard',
-                                        histogram_freq=0,
-                                        write_graph=True,
-                                        write_images=True)
+        if os.path.isdir(experiment_path_subfolder):
+            index += 1
+        else:
+            os.mkdir(experiment_path_subfolder)
+            for sf in subfolders:
+                os.mkdir(os.path.join(experiment_path_subfolder, sf))
+            return experiment_path_subfolder
 
-    lr_callback = callbacks.ReduceLROnPlateau()
 
-    op_callback = OutputProgress(train_partition[5:8], required_input_shape_,
-                                 "../tensorboard/")
+def find(value, obj):
+    result = find_recur(value, obj)
 
-    save_callback = callbacks.ModelCheckpoint("weights.{epoch:02d}-{val_loss:.2f}.hdf5", period=2)
+    if result is None:
+        raise ValueError("could not find", value)
+    else:
+        return result
 
-    # To use with model generator/
-    model.fit_generator(generator=training_generator,
-                        validation_data=validation_generator,
-                        use_multiprocessing=True,
-                        workers=4,
-                        verbose=1,
-                        epochs=10,
-                        callbacks=[tb_callback, lr_callback, op_callback, save_callback])
 
-    # take a sample and try to predict
-    from recolor import image_util
+def find_recur(value, obj):
+    if isinstance(obj, dict):
+        if value in obj:
+            return obj[value]
+        else:
+            result = None
+            for key in obj:
+                if result is not None:
+                    return result
+                else:
+                    result = find(value, obj[key])
+    elif isinstance(obj, list):
+        result = None
+        for o in obj:
+            if result is not None:
+                return result
+            else:
+                return find(value, o)
+    else:
+        return
 
-    # Image 1
-    sample_rgb = image_util.read_image(train_partition[18])
-    sample_lab = image_util.convert_rgb_to_lab(sample_rgb)
 
-    sample_grey = sample_lab[:, :, 0:1]
-    sample_grey = sample_grey.reshape(1, *sample_grey.shape)
+def get_training_config(yaml_config, storage_path) -> TrainingConfig:
+    dim_in = find('dim_in', yaml_config)
+    dim_out = find('dim_out', yaml_config)
 
-    output = model.predict(sample_grey)
+    n_epochs = find('n_epochs', yaml_config)
+    n_workers = find('n_workers', yaml_config)
+    batch_size = find('batch_size', yaml_config)
+    shuffle = find('shuffle', yaml_config)
 
-    ab = image_util.probability_dist_to_ab(output)
+    mode = find('mode', yaml_config)
+    dataset = find('dataset', yaml_config)
+    loss = find('loss', yaml_config)
 
-    lab = np.zeros(sample_lab.shape)
-    lab[:, :, 0:1] = sample_grey
-    lab[:, :, 1:] = ab
+    use_tensorboard = find('use_tensorboard', yaml_config)
+    tensorboard_log_dir = os.path.join(storage_path, tensorboard_subfolder)
 
-    rgb = image_util.convert_lab_to_rgb(lab)
+    reduce_lr_on_plateau = find('reduce_lr_on_plateau', yaml_config)
 
-    image_util.plot_img_converted(sample_rgb, lambda x: rgb)
+    save_colored_image_progress = find('save_colorisation', yaml_config)
+    image_paths_to_save = find('path_to_colorisation_images', yaml_config)
+    image_progression_log_dir = os.path.join(storage_path, progression_subfolder)
 
-    # Image 2
+    periodically_save_model = find('save_periodically', yaml_config)
+    periodically_save_model_period = find('psm_period', yaml_config)
+    periodically_save_model_path = os.path.join(storage_path,
+                                                models_subfolder,
+                                                find('psm_file_name', yaml_config))
 
-    sample_rgb = image_util.read_image(train_partition[30])
-    sample_lab = image_util.convert_rgb_to_lab(sample_rgb)
+    save_best_model = find('save_best', yaml_config)
+    save_best_model_path = os.path.join(storage_path,
+                                        models_subfolder,
+                                        find('sbm_file_name', yaml_config))
 
-    sample_grey = sample_lab[:, :, 0:1]
-    sample_grey = sample_grey.reshape(1, *sample_grey.shape)
+    config = TrainingConfig(
+        dim_in,
+        dim_out,
+        n_epochs,
+        n_workers,
+        batch_size,
+        shuffle,
+        mode,
+        dataset,
+        loss,
+        use_tensorboard,
+        tensorboard_log_dir,
+        reduce_lr_on_plateau,
+        save_colored_image_progress,
+        image_paths_to_save,
+        image_progression_log_dir,
+        periodically_save_model,
+        periodically_save_model_period,
+        periodically_save_model_path,
+        save_best_model,
+        save_best_model_path
+    )
 
-    output = model.predict(sample_grey)
-
-    ab = image_util.probability_dist_to_ab(output)
-
-    lab = np.zeros(sample_lab.shape)
-    lab[:, :, 0:1] = sample_grey
-    lab[:, :, 1:] = ab
-
-    rgb = image_util.convert_lab_to_rgb(lab)
-
-    image_util.plot_img_converted(sample_rgb, lambda x: rgb)
+    return config
 
 
 def main():
-    train_model_small_dataset_multinomial_loss()
+    if len(sys.argv) != 3:
+        print("Usage: python3 run_experiment /path/to/experiment_config.yaml /path/to/where/results/are/stored")
+        exit()
+
+    config_path = os.path.abspath(sys.argv[1])
+
+    if not os.path.isfile(config_path):
+        print("invalid path to config file")
+        exit()
+
+    storage_path = os.path.abspath(sys.argv[2])
+    if not os.path.isdir(storage_path):
+        print('given storage path {} is not a directory'.format(storage_path))
+        exit()
+
+    print("Reading config from", config_path)
+
+    with open(config_path, 'r') as fp:
+        yaml_config = yaml.safe_load(fp)
+
+    storage_path = create_result_dir(yaml_config, storage_path)
+
+    print("Storing results in", storage_path)
+
+    training_config = get_training_config(yaml_config, storage_path)
+
+    model = training_config.get_init_model()
+    train(model, training_config)
+
+    should_shutdown = yaml_config['shutdown-on-completion']
+    if should_shutdown:
+        import subprocess
+        subprocess.call('sudo shutdown')
 
 
 if __name__ == '__main__':
