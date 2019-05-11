@@ -1,6 +1,7 @@
 ################################################################################
-# Utility methods related to Data generator
-# required to generate the data batches at training time
+# Utility methods related to keras functionality:
+# Data generator required to generate the data batches at training time
+# Callback for saving progress of image coloring
 #
 # author(s): Jade Cock, Nik Vaessen
 ################################################################################
@@ -11,11 +12,12 @@ import pickle
 import numpy as np
 import keras
 
-import image_logic
-
+from . import image_util
+from . import constants as c
 
 ################################################################################
 # Define different ways of reading the data
+
 
 def load_image_grey_in_softencode_out(image_path):
     """
@@ -28,13 +30,21 @@ def load_image_grey_in_softencode_out(image_path):
     :param image_path: the path to the image
     :return: tuple of x and y (input and output)
     """
-    rgb = image_logic.read_image(image_path)
-    cielab = image_logic.convert_rgb_to_lab(rgb)
+    filename = os.path.split(image_path)[-1]
+    filename = os.path.splitext(filename)[0]
+    se_filename = os.path.join(c.soft_encoding_training_and_val_dir,
+                               filename + c.soft_encoding_filename_postfix)
+
+    rgb = image_util.read_image(image_path)
+    cielab = image_util.convert_rgb_to_lab(rgb)
 
     gray_channel = cielab[:, :, 0]
     gray_channel = gray_channel[:, :, np.newaxis]
 
-    soft_encoding = image_logic.soft_encode_lab_img(cielab)
+    if os.path.exists(se_filename):
+        soft_encoding = np.load(se_filename)['arr_0']
+    else:
+        soft_encoding = image_util.soft_encode_lab_img(cielab)
 
     return gray_channel, soft_encoding
 
@@ -50,8 +60,8 @@ def load_image_grey_in_ab_out(image_path):
     :param image_path: the path to the image
     :return: tuple of x and y (input and output)
     """
-    rgb = image_logic.read_image(image_path)
-    cielab = image_logic.convert_rgb_to_lab(rgb)
+    rgb = image_util.read_image(image_path)
+    cielab = image_util.convert_rgb_to_lab(rgb)
 
     gray_channel = cielab[:, :, 0]
     gray_channel = gray_channel[:, :, np.newaxis]
@@ -124,12 +134,14 @@ class DataGenerator(keras.utils.Sequence):
 
         # Generate data
         for i, path in enumerate(batch_paths):
+            if os.name == 'nt':
+                path = path.replace('\\', '/')  # Activate for Windows
+
             # Store sample
-            # path = path.replace('\\', '/') # Activate for Windows
             # print(path)
             inp, outp = self.image_load_fn(path)
-            X[i,] = inp
-            y[i,] = outp
+            X[i, ] = inp
+            y[i, ] = outp
 
         return X, y
 
@@ -158,7 +170,7 @@ class DataGenerator(keras.utils.Sequence):
 
 
 def is_grey_image(fn):
-    img = image_logic.read_image(fn)
+    img = image_util.read_image(fn)
     return img.shape == (64, 64)
 
 
@@ -216,16 +228,75 @@ def generate_data_paths_and_pickle():
 
     print("created test id's")
 
+
+################################################################################
+# Define custom callback(s) for our use-case
+
+
+class OutputProgress(keras.callbacks.Callback):
+
+    def __init__(self,
+                 image_paths_file,
+                 input_shape,
+                 root_dir,
+                 must_convert_pdist=True,
+                 every_n_epochs=5):
+        super().__init__()
+
+        with open(os.path.abspath(image_paths_file), 'r') as f:
+            image_paths = f.readlines()
+
+        image_paths = [path.strip() for path in image_paths]
+
+        self.batch = np.empty((len(image_paths), *input_shape))
+
+        for idx, path in enumerate(image_paths):
+            rgb = image_util.read_image(path)
+            lab = image_util.convert_rgb_to_lab(rgb)
+            grey = lab[:, :, 0:1]
+            self.batch[idx, ] = grey
+
+        self.root_dir = root_dir
+        self.period = every_n_epochs
+        self.epochs_since_last_save = 0
+        self.must_convert_pdist=must_convert_pdist
+
+    def on_epoch_end(self, epoch, logs=None):
+        self.epochs_since_last_save += 1
+
+        if self.epochs_since_last_save >= self.period:
+            self.epochs_since_last_save = 0
+            self.save_images(str(epoch + 1))
+
+    def on_train_end(self, logs=None):
+        self.save_images('training_end')
+
+    def save_images(self, epoch_string: str):
+        y = self.model.predict(self.batch)
+
+        if self.must_convert_pdist:
+            y = image_util.probability_dist_to_ab(y)
+
+        for idx in range(self.batch.shape[0]):
+            l = self.batch[idx, ]
+            ab = y[idx, ]
+
+            lab = np.empty((l.shape[0], l.shape[1], 3))
+
+            lab[:, :, 0:] = l
+            lab[:, :, 1:] = ab
+
+            rgb = (image_util.convert_lab_to_rgb(lab) * 255).astype(np.uint8)
+            path = os.path.join(self.root_dir,
+                                "img_{}_epoch_{}.png".format(idx, epoch_string))
+            image_util.save_image(path, rgb)
+
+
 ################################################################################
 # Create tiny tiny imagenet dataset
 # Aiming to accelerate training
 
-path_bincenters = "../np/bincenters.npz"
-if os.path.exists(path_bincenters):
-    bincenters = np.load(path_bincenters)['arr_0']
-else:
-    print("WARNING:", path_bincenters, " was not found, some methods in",
-          __name__, "will fail")
+lab_bin_centers = c.lab_bin_centers
 
 
 def load_keys():
@@ -241,6 +312,7 @@ def load_keys():
             key, val = line.split('\t')
             keys[key] = val
     return keys
+
 
 def load_validation_keys():
     '''
@@ -270,6 +342,7 @@ def get_available_classes():
             label = files[0][:9]
             label_name = labels[label]
             print(file_counter, ': ', label_name, '->', label)
+
 
 def get_tinytiny_dataset():
     tiny_classes = [
@@ -332,19 +405,16 @@ def get_tinytiny_dataset():
     print("created test id's")
 
 
-from image_logic import *
-
-
-def save_soft_encode(path, namepath):
-    image = read_image(path)
-    lab = convert_rgb_to_lab(image)
-    se = soft_encode_lab_img(lab)
-    new_path = '../data/soft_encoded/' + namepath + '_soft_encoded.npz'
+def save_soft_encode(path):
+    image = image_util.read_image(path)
+    lab = image_util.convert_rgb_to_lab(image)
+    se = image_util.soft_encode_lab_img(lab)
+    new_path = '../data/soft_encoded/' + path[-16:-5] + '_soft_encoded.npz'
     np.savez_compressed(new_path, se)
     return new_path
 
-def save_softencode_ondisk():
 
+def save_softencode_ondisk():
     train_paths = []
     i = 0
     with open('./train_ids_tiny.pickle', 'rb') as fp:
@@ -353,8 +423,7 @@ def save_softencode_ondisk():
         for path in train_ids:
             if i % 1000 == 0:
                 print('Saved ', i, 'documents')
-            namepath = path[49:-5]
-            new_path = save_soft_encode(path, namepath)
+            new_path = save_soft_encode(path)
             train_paths.append(new_path)
             i += 1
 
@@ -370,9 +439,8 @@ def save_softencode_ondisk():
         for path in validation_ids:
             if i % 1000 == 0:
                 print('Saved', i, 'documents')
-            i+=1
-            namepath = path[37:-5]
-            new_path = save_soft_encode(path, namepath)
+            i += 1
+            new_path = save_soft_encode(path)
             validation_ids.append(new_path)
 
     with open('../validation_ids_soft_encoded.pickle', 'wb') as fp:
@@ -380,16 +448,15 @@ def save_softencode_ondisk():
     print('Soft encoded validation ids done!')
 
     test_paths = []
-    i=0
+    i = 0
     with open('./test_ids_tiny.pickle', 'rb') as fp:
         test_ids = pickle.load(fp)
         print('There are currently', len(test_ids), 'images in the test set')
         for path in test_ids:
             if i % 1000 == 0:
                 print('Saved', i, 'documents')
-            i+=1
-            namepath = path[38:-5]
-            new_path = save_soft_encode(path, namepath)
+            i += 1
+            new_path = save_soft_encode(path)
             test_paths.append(new_path)
 
     with open('../test_ids_soft_encoded.pickle', 'wb') as fp:
@@ -398,9 +465,8 @@ def save_softencode_ondisk():
     print('Soft encoded test done!')
 
 
-
 ################################################################################
-# Create pickled files when this file is run directly
+# Create pickled files for used by DataGenerator when this file is run directly
 
 
 if __name__ == '__main__':
