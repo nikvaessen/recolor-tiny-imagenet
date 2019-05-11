@@ -127,7 +127,7 @@ class DataGenerator(keras.utils.Sequence):
         # Generate data
         for i, path in enumerate(batch_paths):
             if os.name == 'nt':
-                path = path.replace('\\', '/') # Activate for Windows
+                path = path.replace('\\', '/')  # Activate for Windows
 
             # Store sample
             # print(path)
@@ -228,12 +228,17 @@ def generate_data_paths_and_pickle():
 class OutputProgress(keras.callbacks.Callback):
 
     def __init__(self,
-                 image_paths,
+                 image_paths_file,
                  input_shape,
                  root_dir,
                  must_convert_pdist=True,
                  every_n_epochs=5):
         super().__init__()
+
+        with open(os.path.abspath(image_paths_file), 'r') as f:
+            image_paths = f.readlines()
+
+        image_paths = [path.strip() for path in image_paths]
 
         self.batch = np.empty((len(image_paths), *input_shape))
 
@@ -261,8 +266,8 @@ class OutputProgress(keras.callbacks.Callback):
             y = image_util.probability_dist_to_ab(y)
 
         for idx in range(self.batch.shape[0]):
-            l = self.batch[idx,]
-            ab = y[idx,]
+            l = self.batch[idx, ]
+            ab = y[idx, ]
 
             lab = np.empty((l.shape[0], l.shape[1], 3))
 
