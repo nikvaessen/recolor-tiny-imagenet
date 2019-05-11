@@ -298,9 +298,9 @@ class TrainingConfig:
         else:
             raise ValueError("could not correct loss")
 
-        model: Sequential = init_model(loss_function=loss,
-                                       batch_size=self.batch_size,
-                                       input_shape=self.dim_in)
+        model = init_model(loss_function=loss,
+                           batch_size=self.batch_size,
+                           input_shape=self.dim_in)
 
         return model
 
