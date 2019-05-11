@@ -71,8 +71,11 @@ assert len(lab_bin_centers) == len(lab_bin_bounding_boxes)
 ################################################################################
 # weights used in multinomial loss_function
 
-_weight_filename = 'waitlist.pickle'
+_full_dataset_weight_filename = 'waitlist.pickle'
+_weight_filename = 'waitlist_tiny.pickle'
+_full_dataset_weight_path = os.path.join(_root_dir, _full_dataset_weight_filename)
 _weight_path = os.path.join(_root_dir, _weight_filename)
+full_dataset_weights = np.array(load_pickled_data(_full_dataset_weight_path))
 weights = np.array(load_pickled_data(_weight_path))
 
 ################################################################################
