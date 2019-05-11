@@ -339,46 +339,81 @@ def save_soft_encode(path, namepath):
     image = read_image(path)
     lab = convert_rgb_to_lab(image)
     se = soft_encode_lab_img(lab)
-    new_path = '../data/soft_encoded/' + namepath + '_soft_encoded.npz'
+    new_path = '../data/soft_encoded/test/' + namepath + '_soft_encoded.npz'
     np.savez_compressed(new_path, se)
     return new_path
 
-def save_softencode_ondisk():
+def check_already_encoded_images():
 
-    train_paths = []
-    i = 0
     with open('./train_ids_tiny.pickle', 'rb') as fp:
         train_ids = pickle.load(fp)
-        print('There are currently', len(train_ids), 'images in the training set')
-        for path in train_ids:
-            if i % 1000 == 0:
-                print('Saved ', i, 'documents')
-            namepath = path[49:-5]
-            new_path = save_soft_encode(path, namepath)
-            train_paths.append(new_path)
-            i += 1
+    short_ids = []
+    for i in range(len(train_ids)):
+        short_ids.append(train_ids[i][49:-5])
 
-    with open('../train_ids_soft_encoded.pickle', 'wb') as fp:
-        pickle.dump(train_paths, fp)
-    print('Soft encoded training done')
+    tiny_classes = [
+        'n01443537', 'n01910747', 'n01917289', 'n01950731', 'n02074367', 'n09256479', 'n02321529',
+        'n01855672', 'n02002724', 'n02056570', 'n02058221', 'n02085620', 'n02094433', 'n02099601', 'n02099712',
+        'n02106662', 'n02113799', 'n02123045', 'n02123394', 'n02124075', 'n02125311', 'n02129165', 'n02132136',
+        'n02480495', 'n02481823', 'n12267677', 'n01983481', 'n01984695', 'n02802426', 'n01641577'
+    ]
+
+    image_extension = ".JPEG"
+
+    # Training set
+    rootdir = "../data/soft_encoded"
+    done = []
+    for subdirs, dirs, files in os.walk(rootdir):
+        for file in files:
+            if file[:-17] in short_ids:
+                done.append(file[:-17])
+
+    with open('./done_train_ids_tiny.pickle', 'wb') as fp:
+        pickle.dump(done, fp)
+
+
+def save_softencode_ondisk():
+
+
+    # with open('./done_train_ids_tiny.pickle', 'rb') as fp:
+    #     done = pickle.load(fp)
+    #
+    # with open('../train_ids_soft_encoded.pickle', 'rb') as fp:
+    #     train_paths = pickle.load(fp)
+    # i = 0
+    # with open('./train_ids_tiny.pickle', 'rb') as fp:
+    #     train_ids = pickle.load(fp)
+    #     print('There are currently', len(train_ids), 'images in the training set')
+        # for path in train_ids:
+        #     if i % 1000 == 0:
+        #         print('Saved ', i, 'documents')
+        #     namepath = path[49:-5]
+        #     if namepath not in done:
+        #         new_path = save_soft_encode(path, namepath)
+        #         train_paths.append(new_path)
+        #         i += 1
+
+    # with open('../train_ids_soft_encoded.pickle', 'wb') as fp:
+    #     pickle.dump(train_paths, fp)
+    # print('Soft encoded training done')
 
     validation_paths = []
-    i = 0
-    with open('./validation_ids_tiny.pickle', 'rb') as fp:
-        validation_ids = pickle.load(fp)
-        print('There are currently', len(validation_ids), 'images in the validation set')
-        for path in validation_ids:
-            if i % 1000 == 0:
-                print('Saved', i, 'documents')
-            i+=1
-            namepath = path[37:-5]
-            new_path = save_soft_encode(path, namepath)
-            validation_ids.append(new_path)
+    # i = 0
+    # with open('./validation_ids_tiny.pickle', 'rb') as fp:
+    #     validation_ids = pickle.load(fp)
+    #     print('There are currently', len(validation_ids), 'images in the validation set')
+        # for path in validation_ids:
+        #     if i % 1000 == 0:
+        #         print('Saved', i, 'documents')
+        #     i+=1
+        #     namepath = path[37:-5]
+        #     new_path = save_soft_encode(path, namepath)
+        #     validation_ids.append(new_path)
 
-    with open('../validation_ids_soft_encoded.pickle', 'wb') as fp:
-        pickle.dump(validation_paths, fp)
-    print('Soft encoded validation ids done!')
-
+    # with open('../validation_ids_soft_encoded.pickle', 'wb') as fp:
+    #     pickle.dump(validation_paths, fp)
+    # print('Soft encoded validation ids done!')
+    #
     test_paths = []
     i=0
     with open('./test_ids_tiny.pickle', 'rb') as fp:
@@ -408,6 +443,7 @@ if __name__ == '__main__':
     # get_available_classes()
     # get_tinytiny_dataset()
     save_softencode_ondisk()
+    # check_already_encoded_images()
 
 
 
