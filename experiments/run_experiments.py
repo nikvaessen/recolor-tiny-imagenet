@@ -7,7 +7,8 @@
 import sys
 import os
 import yaml
-
+import json
+import keras
 import time
 
 from recolor.cic_paper_network import TrainingConfig, train
@@ -67,6 +68,14 @@ def get_training_config(yaml_config, storage_path) -> TrainingConfig:
     tensorboard_log_dir = os.path.join(storage_path, tensorboard_subfolder)
 
     reduce_lr_on_plateau = callbacks[1]['reducing-learning-rate'][0]['reduce_lr_on_plateau']
+    if reduce_lr_on_plateau:
+        reduce_lr_on_plateau_factor = callbacks[1]['reducing-learning-rate'][1]['factor']
+        reduce_lr_on_plateau_patience = callbacks[1]['reducing-learning-rate'][2]['patience']
+        reduce_lr_on_plateau_cooldown = callbacks[1]['reducing-learning-rate'][3]['cooldown']
+        reduce_lr_on_plateau = keras.callbacks.ReduceLROnPlateau(factor=reduce_lr_on_plateau_factor,
+                              patience=reduce_lr_on_plateau_patience, cooldown=reduce_lr_on_plateau_cooldown
+                                                           )
+
 
     save = yaml_config['callbacks'][2]['save']
 
