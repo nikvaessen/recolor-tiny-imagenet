@@ -8,8 +8,8 @@
 import pickle
 import os
 import numpy as np
-from . import image_util
-# import image_util # Activate for windows
+# from . import image_util
+import image_util # Activate for windows
 
 from matplotlib import pyplot as plt
 from scipy.stats import norm
