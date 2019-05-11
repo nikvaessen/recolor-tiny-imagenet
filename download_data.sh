@@ -9,5 +9,4 @@ cd data
 if [[ ! -f ${FILE} ]]; then
     wget ${URL}
     unzip ${FILE}
-    rm ${FILE}
 fi

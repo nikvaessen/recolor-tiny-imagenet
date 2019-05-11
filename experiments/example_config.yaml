@@ -1,0 +1,44 @@
+#####################
+###
+### MAKE SURE EACH ENTRY/KEY VALUE IS UNIQUE OTHERWISE THE PARSING WILL FAIL
+###
+#####################
+
+# unique name for this set of parameters. Make sure it's a valid folder name
+name: 'example-config'
+
+training:
+  - dim_in:  [64, 64, 1]   # Should always be a 1-channeled image (gray-scale)
+  - dim_out: [64, 64, 3]   # Should always be a 3-channeled image (rgb color)
+  - n_epochs: 1000
+  - n_workers: 6
+  - batch_size: 64
+  - shuffle: true
+
+  # one of 'grey-in-ab-out' or 'grey-in-softencode-out'
+  - mode: 'grey-in-softencode-out'
+
+  # one of 'tiny-imagenet-dataset-full' or 'tiny-imagenet-dataset-tiny'
+  - dataset: 'tiny-imagenet-dataset-tiny'
+
+  # one of 'multinomial_loss' or `weighted_multinomial_loss`
+  - loss: 'multinomial_loss'
+
+callbacks:
+  - tensorboard:
+      - use_tensorboard: true
+  - reducing-learning-rate:
+      - reduce_lr_on_plateau: false
+  - save:
+      - colorisation-progress:
+          - save_colorisation: true
+          - path_to_colorisation_images: '...'
+      - periodically-save-model:
+          - save_periodically: true
+          - psm_period: 200  # aim for something around n_epochs/5
+          - psm_file_name: '..'
+      - save-best-model:
+          - save_best: true
+          - sbm_file_name: '..'
+
+shutdown-on-completion: False

@@ -16,6 +16,8 @@ from keras import backend as K
 
 from skimage import io, color, transform
 
+from . import constants as c
+
 ################################################################################
 # constants related to the binning
 
@@ -28,23 +30,9 @@ lab_max = 127
 rgb_preferred_bin_size = 20
 lab_preferred_bin_size = 10
 
-path_rgb_bin_indexes = "../np/rgb_bin_indexes.npz"
-path_bincenters = "../np/bincenters.npz" 
-path_bins = "../np/bins.npz"
-
-if os.path.exists(path_bins):
-    bins = np.load(path_bins)['arr_0']
-    num_bins = len(bins)
-else:
-    num_bins = 0
-    print("WARNING: ", path_bins, " was not found, some methods in ", __name__,
-          "will fail")
-
-if os.path.exists(path_bincenters):
-    bincenters = np.load(path_bincenters)['arr_0']
-else:
-    print("WARNING:", path_bincenters, " was not found, some methods in",
-          __name__, "will fail")
+lab_bin_bounding_boxes = c.lab_bin_bounding_boxes
+lab_bin_centers = c.lab_bin_centers
+num_lab_bins = c.num_lab_bins
 
 ################################################################################
 # image loading and display
@@ -53,6 +41,10 @@ else:
 def read_image(fn: str):
     fn = fn.replace('\\', '/') # activate for Windows
     return io.imread(fn)
+
+
+def save_image(fn, img):
+    io.imsave(fn, img)
 
 
 def plot_image(x: np.ndarray):
@@ -155,7 +147,7 @@ def soft_encode_rgb_img(img, n=5, binsize=rgb_preferred_bin_size):
     raise NotImplementedError()
 
 
-def bin_lab_slow(img, bins=bins):
+def bin_lab_slow(img, bins=lab_bin_bounding_boxes):
     c = img[:, :, 1:]
 
     c_binned = np.copy(c)
@@ -210,7 +202,7 @@ def one_hot_encode_lab_img(img: np.ndarray,
 
 
 def soft_encode_lab_img(img: np.ndarray,
-                        bincenters=bincenters,
+                        bincenters=lab_bin_centers,
                         apply_kernel=False,
                         gaussian_kernel_var=5):
     """Given a lab image returns a soft encoding per pixel"""
@@ -308,7 +300,7 @@ def probability_dist_to_ab(pdist, T=1):
         for j in range(p.shape[0]):
             for k in range(p.shape[1]):
                 bin_idx = bin_indexes[j, k]
-                ab = bincenters[bin_idx]
+                ab = lab_bin_centers[bin_idx]
                 batch_ab[i, j, k, :] = ab
 
     return batch_ab
@@ -324,7 +316,7 @@ def probability_dist_to_ab_tensor(pdist):
     batch_ab = K.zeros((pdist.shape[0], pdist.shape[1], pdist.shape[2], 2))
     bin_indexes = K.argmax(pdist, axis=3)
     print('bin indexes', bin_indexes)
-    bin_coords = K.constant(bincenters)
+    bin_coords = K.constant(lab_bin_centers)
     K.map_fn()
 
     for i in range(pdist.shape[0]):
@@ -499,7 +491,7 @@ def func(lab_tuple):
     if l_edge or a_edge or b_edge:
         return -1
 
-    for idx, (a_min, a_max, b_min, b_max) in enumerate(bins):
+    for idx, (a_min, a_max, b_min, b_max) in enumerate(lab_bin_bounding_boxes):
         if a_min < a < a_max and b_min < b < b_max:
             return idx
 
@@ -543,7 +535,7 @@ def test_encoding():
 def create_bin_center_file():
     """Calculate the bin centers and save them"""
     result = []
-    for b in bins:
+    for b in lab_bin_bounding_boxes:
         amin = b[0]
         amax = b[1]
         bmin = b[2]
@@ -585,10 +577,10 @@ def create_bin_numpy_file():
 
 
 def test_bins():
-    print(type(bins))
-    for b in bins:
+    print(type(lab_bin_bounding_boxes))
+    for b in lab_bin_bounding_boxes:
         print(b)
-    print("length: ", len(bins))
+    print("length: ", len(lab_bin_bounding_boxes))
 
     img = read_image(test_image)
     print(".jpeg read", img.shape, img.dtype, np.max(img), np.min(img))
@@ -626,12 +618,12 @@ def test_lab_5encode():
     for idx in range(0, result.shape[0]):
         v = result[idx]
         if v > 0:
-            c = bincenters[idx]
+            c = lab_bin_centers[idx]
             colors.append(c)
     nbin = []
     for v in r:
         i = np.where( v==np.min(v[np.nonzero(v)]))
-        nbin.append(bincenters[i[0][0]])
+        nbin.append(lab_bin_centers[i[0][0]])
     print(colors)
 
     bimg = np.ones((64,64,3))*50
@@ -658,11 +650,11 @@ def test_lab_5encode():
     image[3, 2, 1:] = binned_img[0, 0, 1:]
     image[4, 2, 1:] = binned_img[0, 0, 1:]
     
-    image[0, 3, 1:] = bincenters[78]
-    image[1, 3, 1:] = bincenters[95]
-    image[2, 3, 1:] = bincenters[96]
-    image[3, 3, 1:] = bincenters[111]
-    image[4, 3, 1:] = bincenters[112]
+    image[0, 3, 1:] = lab_bin_centers[78]
+    image[1, 3, 1:] = lab_bin_centers[95]
+    image[2, 3, 1:] = lab_bin_centers[96]
+    image[3, 3, 1:] = lab_bin_centers[111]
+    image[4, 3, 1:] = lab_bin_centers[112]
 
     rgb = convert_lab_to_rgb(image)
     rgb2 = convert_lab_to_rgb(bimg)
@@ -726,7 +718,7 @@ def plot_all_bins():
     lab = np.ones((1, 289, 3)) * 0
     # lab = lab.flatten()
 
-    for idx, b in enumerate(bincenters):
+    for idx, b in enumerate(lab_bin_centers):
         # start = idx * 3
         # end = (idx+1) * 3
         # print(b)

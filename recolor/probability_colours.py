@@ -4,12 +4,15 @@
 #
 # author(s): Jade Cock
 ################################################################################
+
 import pickle
 import os
-from image_logic import *
-import copy
+
+from . import image_util
+
 from matplotlib import pyplot as plt
 from scipy.stats import norm
+
 
 class ColourProbability():
     def __init__(self, num_label, label):
@@ -307,6 +310,7 @@ def main():
     plt.scatter(x, y, color='teal', s=0.3)
     plt.savefig('../ResultPics/weights2.png')
     plt.show()
+
 
 if __name__ == '__main__':
     main()
