@@ -249,12 +249,16 @@ class OutputProgress(keras.callbacks.Callback):
             self.batch[idx, ] = grey
 
         self.root_dir = root_dir
-        self.every_n_epochs = every_n_epochs
+        self.period = every_n_epochs
+        self.epochs_since_last_save = 0
         self.must_convert_pdist=must_convert_pdist
 
     def on_epoch_end(self, epoch, logs=None):
-        if epoch + 1 % self.every_n_epochs == 0:
-            self.save_images(str(epoch))
+        self.epochs_since_last_save += 1
+
+        if self.epochs_since_last_save >= self.period:
+            self.epochs_since_last_save = 0
+            self.save_images(str(epoch + 1))
 
     def on_train_end(self, logs=None):
         self.save_images('training_end')
