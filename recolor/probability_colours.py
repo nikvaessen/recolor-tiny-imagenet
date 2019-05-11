@@ -7,8 +7,9 @@
 
 import pickle
 import os
-
+import numpy as np
 from . import image_util
+# import image_util # Activate for windows
 
 from matplotlib import pyplot as plt
 from scipy.stats import norm
@@ -93,7 +94,7 @@ def load_keys():
     key - > numerical value of the file (also the name of the folder they are in)
     value - > text value of the file
     '''
-    label_path = "../Dataset/tiny-imagenet-200/words.txt"
+    label_path = "../data/tiny-imagenet-200/words.txt"
     keys = {}
     with open(label_path) as f:
         for line in f:
@@ -109,31 +110,39 @@ def compute_probabilities():
     all_probs = ColourProbability('all', 'all') # Contains loss regardless of the probability
     file_counter = 0
     labels = load_keys()
-    train_path = "../Dataset/tiny-imagenet-200/train"
+    train_path = "../data/tiny-imagenet-200/train"
     counter_gray = 0
+
+    tiny_classes = [
+        'n01443537', 'n01910747', 'n01917289', 'n01950731', 'n02074367', 'n09256479', 'n02321529',
+        'n01855672', 'n02002724', 'n02056570', 'n02058221', 'n02085620', 'n02094433', 'n02099601', 'n02099712',
+        'n02106662', 'n02113799', 'n02123045', 'n02123394', 'n02124075', 'n02125311', 'n02129165', 'n02132136',
+        'n02480495', 'n02481823', 'n12267677', 'n01983481', 'n01984695', 'n02802426', 'n01641577'
+    ]
 
     for subdirs, dirs, files in os.walk(train_path):
         if len(files) == 500:
             file_counter += 1
 
             label = files[0][:9]
-            label_name = labels[label]
-            print(file_counter, ': ', label_name)
-            colour_probs = ColourProbability(label, label_name)
+            if label in tiny_classes:
+                label_name = labels[label]
+                print(file_counter, ': ', label_name)
+                colour_probs = ColourProbability(label, label_name)
 
-            for file in files:
-                path = os.path.join(subdirs, file)
-                try:
-                    image = read_image(path)
-                    colour_probs.add_image(image.shape[0], image.shape[1], image)
-                    all_probs.add_image(image.shape[0], image.shape[1], image)
-                except IndexError:
-                    counter_gray += 1
+                for file in files:
+                    path = os.path.join(subdirs, file)
+                    try:
+                        image = image_util.read_image(path)
+                        # colour_probs.add_image(image.shape[0], image.shape[1], image)
+                        all_probs.add_image(image.shape[0], image.shape[1], image)
+                    except IndexError:
+                        counter_gray += 1
 
-            colour_probs.create_probabilities()
-            path = '../probabilities/probability_object_' + label + '.pickle'
-            with open(path, 'wb') as fp:
-                pickle.dump(colour_probs, fp)
+                # colour_probs.create_probabilities()
+                # path = '../probabilities/probability_object_' + label + '.pickle'
+                # with open(path, 'wb') as fp:
+                #     pickle.dump(colour_probs, fp)
 
     print(counter_gray)
     all_probs.create_probabilities()
@@ -169,7 +178,7 @@ def create_rgb_to_bin():
                 bb = np.ones((1, 1)) * b
 
                 rgb_pixel = np.stack((r, g, bb), axis=-1)
-                cie_pixel = convert_rgb_to_lab(rgb_pixel)
+                cie_pixel = image_util.convert_rgb_to_lab(rgb_pixel)
 
                 a = cie_pixel[:, :, 1].flatten()
                 b = cie_pixel[:, :, 2].flatten()
@@ -240,14 +249,14 @@ def compute_weights():
         newSomme += weights[key] * bin_probs[key]
     print(newSomme)
 
-    with open('../probabilities/weights2.pickle', 'wb') as fp:
+    with open('../probabilities/weights_tiny.pickle', 'wb') as fp:
         pickle.dump(weights, fp)
 
     waitlist = []
     for key in range(len(bin_probs)):
         waitlist.append(weights[key])
 
-    with open('../probabilities/waitlist2.pickle', 'wb') as fp:
+    with open('../probabilities/waitlist_tiny.pickle', 'wb') as fp:
         pickle.dump(waitlist, fp)
 
 
@@ -262,9 +271,9 @@ def probs_to_weight(weight, Q, sigma=5, lamda=0.5):
     return smoothed
 
 def test_weight_loss():
-    image = read_image('../test_images/fish.JPEG')
-    image = convert_rgb_to_lab(image)
-    image = soft_encode_lab_img(image)
+    image = image_util.read_image('../test_images/fish.JPEG')
+    image = image_util.convert_rgb_to_lab(image)
+    image = image_util.soft_encode_lab_img(image)
     print(image.shape)
 
     with open('../probabilities/weights.pickle', 'rb') as fp:
@@ -297,10 +306,14 @@ def test_weight_loss():
 
 
 def main():
-    compute_weights()
-    with open('../probabilities/weights2.pickle', 'rb') as fp:
-        weights = pickle.load(fp)
+    # compute_probabilities() # Goes through all the images
 
+    # bin_probability() # Matches rgb probability to bin probability
+
+    compute_weights()
+    with open('../probabilities/weights_tiny.pickle', 'rb') as fp:
+        weights = pickle.load(fp)
+    #
     x = []
     y = []
     for i in range(len(weights)):
@@ -308,7 +321,7 @@ def main():
         y.append(weights[i])
 
     plt.scatter(x, y, color='teal', s=0.3)
-    plt.savefig('../ResultPics/weights2.png')
+    plt.savefig('../ResultPics/weights_tiny_distribution.png')
     plt.show()
 
 
