@@ -76,6 +76,14 @@ _weight_path = os.path.join(_root_dir, _weight_filename)
 weights = np.array(load_pickled_data(_weight_path))
 
 ################################################################################
+# soft-encoding paths
+
+soft_encoding_training_and_val_dir = "../data/soft_encoded_training_val_dir/"
+soft_encoding_test_dir = "../data/soft_encoded_training_val_dir"
+soft_encoding_filename_postfix = "_soft_encoded.npz"
+
+
+################################################################################
 # references to data (each is an array of relative file paths
 
 
@@ -112,11 +120,11 @@ test_set_tiny_file_paths = load_pickled_data(_training_set_tiny_path)
 # subset of tiny-imagenet-200
 debug_dataset = 'debug-dataset'
 
-training_set_debug_file_paths = training_set_tiny_file_paths[0:32]
+training_set_debug_file_paths = training_set_tiny_file_paths[0:128]
 
-validation_set_debug_file_paths = validation_set_tiny_file_paths[0:32]
+validation_set_debug_file_paths = validation_set_tiny_file_paths[0:128]
 
-test_set_tiny_debug_paths = test_set_tiny_file_paths[0:32]
+test_set_tiny_debug_paths = test_set_tiny_file_paths[0:128]
 
 
 ################################################################################
