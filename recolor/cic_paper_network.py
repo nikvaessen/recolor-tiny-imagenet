@@ -267,12 +267,16 @@ class TrainingConfig:
             'mode': self.mode
         }
 
-        if self.dataset == 'tiny-image-net-full':
+        if self.dataset == c.tiny_imagenet_dataset_full:
             training_path = c.training_set_full_file_paths
             validation_path = c.validation_set_full_file_paths
         else:
             training_path = c.training_set_tiny_file_paths
             validation_path = c.validation_set_tiny_file_paths
+
+        print('using dataset:', self.dataset)
+        print("using {} training samples".format(len(training_path)))
+        print('using {} validation samples'.format(len(validation_path)))
 
         training_generator = DataGenerator(training_path, **params)
         validation_generator = DataGenerator(validation_path, **params)

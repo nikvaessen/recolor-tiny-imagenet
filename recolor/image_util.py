@@ -39,7 +39,9 @@ num_lab_bins = c.num_lab_bins
 
 
 def read_image(fn: str):
-    fn = fn.replace('\\', '/') # activate for Windows
+    if os.name == 'nt':
+        fn = fn.replace('\\', '/') # activate for Windows
+
     return io.imread(fn)
 
 

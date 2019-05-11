@@ -97,15 +97,15 @@ test_set_full_file_paths = load_pickled_data(_training_set_full_path)
 # subset of tiny-imagenet-200
 tiny_imagenet_dataset_tiny = 'tiny-imagenet-dataset-tiny'
 
-_training_set_tiny_file_name = 'train_ids.pickle'
+_training_set_tiny_file_name = 'train_ids_tiny.pickle'
 _training_set_tiny_path = os.path.join(_root_dir, _training_set_tiny_file_name)
 training_set_tiny_file_paths = load_pickled_data(_training_set_tiny_path)
 
-_validation_set_tiny_file_name = 'validation_ids.pickle'
+_validation_set_tiny_file_name = 'validation_ids_tiny.pickle'
 _validation_set_tiny_path = os.path.join(_root_dir, _training_set_tiny_file_name)
 validation_set_tiny_file_paths = load_pickled_data(_training_set_tiny_path)
 
-_test_set_tiny_file_name = 'test_ids.pickle'
+_test_set_tiny_file_name = 'test_ids_tiny.pickle'
 _test_set_tiny_path = os.path.join(_root_dir, _training_set_tiny_file_name)
 test_set_tiny_file_paths = load_pickled_data(_training_set_tiny_path)
 
