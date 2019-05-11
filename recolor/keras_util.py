@@ -127,7 +127,7 @@ class DataGenerator(keras.utils.Sequence):
         # Generate data
         for i, path in enumerate(batch_paths):
             if os.name == 'nt':
-                path = path.replace('\\', '/') # Activate for Windows
+                path = path.replace('\\', '/')  # Activate for Windows
 
             # Store sample
             # print(path)
@@ -228,12 +228,17 @@ def generate_data_paths_and_pickle():
 class OutputProgress(keras.callbacks.Callback):
 
     def __init__(self,
-                 image_paths,
+                 image_paths_file,
                  input_shape,
                  root_dir,
                  must_convert_pdist=True,
                  every_n_epochs=5):
         super().__init__()
+
+        with open(os.path.abspath(image_paths_file), 'r') as f:
+            image_paths = f.readlines()
+
+        image_paths = [path.strip() for path in image_paths]
 
         self.batch = np.empty((len(image_paths), *input_shape))
 
@@ -244,32 +249,36 @@ class OutputProgress(keras.callbacks.Callback):
             self.batch[idx, ] = grey
 
         self.root_dir = root_dir
-        self.every_n_epochs = every_n_epochs
+        self.period = every_n_epochs
+        self.epochs_since_last_save = 0
         self.must_convert_pdist=must_convert_pdist
 
     def on_epoch_end(self, epoch, logs=None):
-        if epoch % self.every_n_epochs == 0:
-            self.save_images(str(epoch))
+        self.epochs_since_last_save += 1
+
+        if self.epochs_since_last_save >= self.period:
+            self.epochs_since_last_save = 0
+            self.save_images(str(epoch + 1))
 
     def on_train_end(self, logs=None):
         self.save_images('training_end')
 
-    def save_images(self, epoch_string:str):
+    def save_images(self, epoch_string: str):
         y = self.model.predict(self.batch)
 
         if self.must_convert_pdist:
             y = image_util.probability_dist_to_ab(y)
 
         for idx in range(self.batch.shape[0]):
-            l = self.batch[idx,]
-            ab = y[idx,]
+            l = self.batch[idx, ]
+            ab = y[idx, ]
 
             lab = np.empty((l.shape[0], l.shape[1], 3))
 
             lab[:, :, 0:] = l
             lab[:, :, 1:] = ab
 
-            rgb = image_util.convert_lab_to_rgb(lab)
+            rgb = (image_util.convert_lab_to_rgb(lab) * 255).astype(np.uint8)
             path = os.path.join(self.root_dir,
                                 "img_{}_epoch_{}.png".format(idx, epoch_string))
             image_util.save_image(path, rgb)

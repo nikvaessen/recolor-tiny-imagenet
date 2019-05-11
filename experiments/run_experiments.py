@@ -7,6 +7,9 @@
 import sys
 import os
 import yaml
+import json
+
+from functools import reduce
 
 from recolor.cic_paper_network import TrainingConfig, train
 
@@ -43,69 +46,49 @@ def create_result_dir(yaml_config_dic, storage_dir_path):
             return experiment_path_subfolder
 
 
-def find(value, obj):
-    result = find_recur(value, obj)
-
-    if result is None:
-        raise ValueError("could not find", value)
-    else:
-        return result
-
-
-def find_recur(value, obj):
-    if isinstance(obj, dict):
-        if value in obj:
-            return obj[value]
-        else:
-            result = None
-            for key in obj:
-                if result is not None:
-                    return result
-                else:
-                    result = find(value, obj[key])
-    elif isinstance(obj, list):
-        result = None
-        for o in obj:
-            if result is not None:
-                return result
-            else:
-                return find(value, o)
-    else:
-        return
-
-
 def get_training_config(yaml_config, storage_path) -> TrainingConfig:
-    dim_in = find('dim_in', yaml_config)
-    dim_out = find('dim_out', yaml_config)
+    # training section
+    training = yaml_config['training']
+    
+    dim_in = training[0]['dim_in']
+    dim_out = training[1]['dim_out']
+    n_epochs = training[2]['n_epochs']
+    n_workers = training[3]['n_workers']
+    batch_size = training[4]['batch_size']
+    shuffle = training[5]['shuffle']
 
-    n_epochs = find('n_epochs', yaml_config)
-    n_workers = find('n_workers', yaml_config)
-    batch_size = find('batch_size', yaml_config)
-    shuffle = find('shuffle', yaml_config)
+    mode = training[6]['mode']
+    dataset = training[7]['dataset']
+    loss = training[8]['loss']
 
-    mode = find('mode', yaml_config)
-    dataset = find('dataset', yaml_config)
-    loss = find('loss', yaml_config)
-
-    use_tensorboard = find('use_tensorboard', yaml_config)
+    # callback obj
+    callbacks = yaml_config['callbacks']
+    
+    use_tensorboard = callbacks[0]['tensorboard'][0]['use_tensorboard']
     tensorboard_log_dir = os.path.join(storage_path, tensorboard_subfolder)
 
-    reduce_lr_on_plateau = find('reduce_lr_on_plateau', yaml_config)
+    reduce_lr_on_plateau = callbacks[1]['reducing-learning-rate'][0]['reduce_lr_on_plateau']
 
-    save_colored_image_progress = find('save_colorisation', yaml_config)
-    image_paths_to_save = find('path_to_colorisation_images', yaml_config)
+    save = yaml_config['callbacks'][2]['save']
+
+    save_colored_image_progress = save[0]['colorisation-progress'][0]['save_colorisation']
+    image_paths_to_save = save[0]['colorisation-progress'][1]["path_to_colorisation_images"]
+    image_paths_to_save = os.path.abspath(image_paths_to_save)
     image_progression_log_dir = os.path.join(storage_path, progression_subfolder)
+    image_progression_period = save[0]['colorisation-progress'][2]["progression_period"]
 
-    periodically_save_model = find('save_periodically', yaml_config)
-    periodically_save_model_period = find('psm_period', yaml_config)
+    periodically_save_model = save[1]['periodically-save-model'][0]['save_periodically']
+    periodically_save_model_period = save[1]['periodically-save-model'][1]['psm_period']
+    periodically_save_model_fn = save[1]['periodically-save-model'][2]['psm_file_name']
     periodically_save_model_path = os.path.join(storage_path,
                                                 models_subfolder,
-                                                find('psm_file_name', yaml_config))
+                                                periodically_save_model_fn)
 
-    save_best_model = find('save_best', yaml_config)
+    save_best_model = save[2]['save-best-model'][0]['save_best']
+    save_best_model_fn = save[2]['save-best-model'][1]['sbm_file_name']
     save_best_model_path = os.path.join(storage_path,
                                         models_subfolder,
-                                        find('sbm_file_name', yaml_config))
+                                        save_best_model_fn)
 
     config = TrainingConfig(
         dim_in,
@@ -123,9 +106,10 @@ def get_training_config(yaml_config, storage_path) -> TrainingConfig:
         save_colored_image_progress,
         image_paths_to_save,
         image_progression_log_dir,
+        image_progression_period,
         periodically_save_model,
-        periodically_save_model_period,
         periodically_save_model_path,
+        periodically_save_model_period,
         save_best_model,
         save_best_model_path
     )
@@ -153,6 +137,7 @@ def main():
 
     with open(config_path, 'r') as fp:
         yaml_config = yaml.safe_load(fp)
+        # print(json.dumps(yaml_config, indent=4))
 
     storage_path = create_result_dir(yaml_config, storage_path)
 
