@@ -194,10 +194,12 @@ def init_model(loss_function=multinomial_loss,
 
 class TrainingConfig:
 
-    modes = [DataGenerator.mode_grey_in_softencode_out,
+    modes = [DataGenerator.compressed_mode,
+             DataGenerator.mode_grey_in_softencode_out,
              DataGenerator.mode_grey_in_ab_out]
 
-    datasets = [c.tiny_imagenet_dataset_full,
+    datasets = [c.n_training_set_tiny_uncompressed,
+                c.tiny_imagenet_dataset_full,
                 c.tiny_imagenet_dataset_tiny,
                 c.debug_dataset]
 
@@ -260,7 +262,7 @@ class TrainingConfig:
             return value
         else:
             raise ValueError("{} needs to be one of {}"
-                             .format(value, possible_values.modes))
+                             .format(value, possible_values))
 
     def get_generators(self):
         params = {

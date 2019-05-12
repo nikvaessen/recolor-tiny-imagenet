@@ -22,6 +22,21 @@ else:
 ################################################################################
 # Define different ways of reading the data
 
+def load_compressed_files(image_path):
+    """
+    Load the compressed file image_path.npz where the attribute input
+    is the cielab image, and where the attribute ouput is the soft
+    encoding version of the expected colour bin as a
+    (width*height*num_bins) np array
+    :param image_path: path to the npz file
+    :return: the cielab image and the soft encoded image in that order
+    """
+
+    compressed = np.load(image_path)
+    cielab, soft_encode = compressed['input'], compressed['output']
+
+    return cielab[:, :, 0:1], soft_encode
+
 
 def load_image_grey_in_softencode_out(image_path):
     """
@@ -81,10 +96,11 @@ def load_image_grey_in_ab_out(image_path):
 
 
 class DataGenerator(keras.utils.Sequence):
+    compressed_mode = 'compressed-mode'
     mode_grey_in_ab_out = 'grey-in-ab-out'
     mode_grey_in_softencode_out = 'grey-in-softencode-out'
 
-    modes = [mode_grey_in_ab_out, mode_grey_in_softencode_out]
+    modes = [compressed_mode, mode_grey_in_ab_out, mode_grey_in_softencode_out]
 
     def __init__(self,
                  data_paths,
@@ -110,7 +126,9 @@ class DataGenerator(keras.utils.Sequence):
         self.shuffle = shuffle
 
         if mode in DataGenerator.modes:
-            if mode == DataGenerator.mode_grey_in_ab_out:
+            if mode == DataGenerator.compressed_mode:
+                self.image_load_fn = load_compressed_files
+            elif mode == DataGenerator.mode_grey_in_ab_out:
                 self.image_load_fn = load_image_grey_in_ab_out
             elif mode == DataGenerator.mode_grey_in_softencode_out:
                 self.image_load_fn = load_image_grey_in_softencode_out
@@ -511,23 +529,23 @@ def save_input_output(path, newpath):
 
 def save_input_output_ondisk():
 
-    train_paths = []
-    i = 0
-    with open('./train_ids_tiny.pickle', 'rb') as fp:
-        train_ids = pickle.load(fp)
-        print('There are currently', len(train_ids), 'images in the training set')
-        for path in train_ids:
-            if i % 1000 == 0:
-                print('Saved ', i, 'documents')
-            namepath = 'train/' + path[49:-5]
-            new_path = save_input_output(path, namepath)
-            train_paths.append(new_path)
-            i += 1
-
-    with open('../train_ids_npz.pickle', 'wb') as fp:
-        pickle.dump(train_paths, fp)
-    print('Soft encoded training done')
-
+    # train_paths = []
+    # i = 0
+    # with open('./train_ids_tiny.pickle', 'rb') as fp:
+    #     train_ids = pickle.load(fp)
+    #     print('There are currently', len(train_ids), 'images in the training set')
+    #     for path in train_ids:
+    #         if i % 1000 == 0:
+    #             print('Saved ', i, 'documents')
+    #         namepath = 'train/' + path[49:-5]
+    #         new_path = save_input_output(path, namepath)
+    #         train_paths.append(new_path)
+    #         i += 1
+    #
+    # with open('../train_ids_npz.pickle', 'wb') as fp:
+    #     pickle.dump(train_paths, fp)
+    # print('Soft encoded training done')
+    #
     validation_paths = []
     i = 0
     with open('./validation_ids_tiny.pickle', 'rb') as fp:
@@ -538,12 +556,14 @@ def save_input_output_ondisk():
                 print('Saved', i, 'documents')
             i += 1
             namepath = 'val/' + path[37:-5]
-            new_path = save_input_output(path, namepath)
+            # new_path = save_input_output(path, namepath)
+            new_path = '../data/npz-tiny-imagenet/' + namepath + '_intput_output.npz'
             validation_ids.append(new_path)
+
 
     with open('../validation_ids_npz.pickle', 'wb') as fp:
         pickle.dump(validation_paths, fp)
-    print('Soft encoded validation ids done!')
+    # print('Soft encoded validation ids done!')
 
     test_paths = []
     i = 0
@@ -557,12 +577,26 @@ def save_input_output_ondisk():
             name_path = 'test/' + path[38:-5]
             new_path = save_input_output(path, name_path)
             test_paths.append(new_path)
-            break
     #
     with open('../test_ids_npz.pickle', 'wb') as fp:
         pickle.dump(test_paths, fp)
 
     print('Soft encoded test done!')
+
+###############################################################################
+# Test loadgin functions
+
+def test_loading():
+
+    cielab, se = load_compressed_files('../data/npz-tiny-imagenet/train/n01641577_0_intput_output.npz')
+
+    print('Cielab', cielab.shape)
+    print('Soft encoding', se.shape)
+
+    cielab = image_util.convert_lab_to_rgb(cielab)
+    image_util.plot_image(cielab)
+
+
 
 
 
@@ -577,7 +611,8 @@ if __name__ == '__main__':
     # get_tinytiny_dataset()
     # save_softencode_ondisk()
     # check_already_encoded_images()
-    save_input_output_ondisk()
+    # save_input_output_ondisk()
+    test_loading()
 
 
 

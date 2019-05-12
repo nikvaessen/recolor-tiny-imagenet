@@ -18,9 +18,10 @@ training:
   # one of 'grey-in-ab-out' or 'grey-in-softencode-out'
   # 'grey-in-ab-out' should be used for l2 loss
   # 'grey-in-softencode-out' should be used multinomial loss
-  - mode: 'grey-in-softencode-out'
+  - mode: 'compressed-mode'
 
   # one of 'tiny-imagenet-dataset-full' or 'tiny-imagenet-dataset-tiny' or 'debug-dataset'
+  # or 'tiny-imagenet-dataset-tiny-uncompressed'
   - dataset: 'tiny-imagenet-dataset-tiny'
 
   # one of 'multinomial_loss' or `weighted_multinomial_loss`

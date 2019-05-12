@@ -98,6 +98,28 @@ def get_training_config(yaml_config, storage_path) -> TrainingConfig:
                                         models_subfolder,
                                         save_best_model_fn)
 
+    # print("dim_in", dim_in)
+    # print("dim_out", dim_out)
+    # print("n_epochs", n_epochs)
+    # print("n_workers", n_workers)
+    # print("batch_size", batch_size)
+    # print("shuffle", shuffle)
+    # print("mode", mode)
+    # print("dataset", dataset)
+    # print("loss", loss)
+    # print("use_tensorboard", use_tensorboard)
+    # print("tensorboard_log_dir", tensorboard_log_dir)
+    # print("reduce_lr_on_plateau", reduce_lr_on_plateau)
+    # print("save_colored_image_progress", save_colored_image_progress)
+    # print("image_paths_to_save", image_paths_to_save)
+    # print("image_progression_log_dir", image_progression_log_dir)
+    # print("image_progression_period", image_progression_period)
+    # print("periodically_save_model", periodically_save_model)
+    # print("periodically_save_model_path", periodically_save_model_path)
+    # print("periodically_save_model_period", periodically_save_model_period)
+    # print("save_best_model", save_best_model)
+    # print("save_best_model_path", save_best_model_path)
+    #
     config = TrainingConfig(
         dim_in,
         dim_out,
