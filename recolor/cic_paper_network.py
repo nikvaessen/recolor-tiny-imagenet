@@ -325,7 +325,10 @@ def train(model: Sequential, config: TrainingConfig):
 
     if config.use_tensorboard:
         print("using tensorboard")
-        tb_callback = callbacks.TensorBoard(log_dir=config.tensorboard_log_dir)
+        tb_callback = callbacks.TensorBoard(log_dir=config.tensorboard_log_dir,
+                                            write_graph=False,
+                                            update_freq=5000
+                                            )
         callback_list.append(tb_callback)
 
     if config.reduce_lr_on_plateau:
