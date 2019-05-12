@@ -12,7 +12,7 @@ training:
   - dim_out: [64, 64, 262]   # Should depend on mode (either 262 or 3 output channels)
   - n_epochs: 10
   - n_workers: 3
-  - batch_size: 64
+  - batch_size: 32
   - shuffle: true
 
   # one of 'grey-in-ab-out' or 'grey-in-softencode-out'
