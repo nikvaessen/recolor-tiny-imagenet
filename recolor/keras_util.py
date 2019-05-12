@@ -35,7 +35,7 @@ def load_compressed_files(image_path):
     compressed = np.load(image_path)
     cielab, soft_encode = compressed['input'], compressed['output']
 
-    return cielab, soft_encode
+    return cielab[:, :, 0:1], soft_encode
 
 
 def load_image_grey_in_softencode_out(image_path):
