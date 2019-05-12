@@ -13,7 +13,7 @@ training:
   - n_epochs: 100
   - n_workers: 6
   - queue_size: 3
-  - batch_size: 128
+  - batch_size: 64
   - shuffle: true
 
   # one of 'grey-in-ab-out' or 'grey-in-softencode-out'
