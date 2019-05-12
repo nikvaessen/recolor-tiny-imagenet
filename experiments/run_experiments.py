@@ -8,8 +8,10 @@ import sys
 import os
 import yaml
 import json
-import keras
 import time
+import subprocess
+
+import keras
 
 from recolor.cic_paper_network import TrainingConfig, train
 
@@ -147,23 +149,14 @@ def get_training_config(yaml_config, storage_path) -> TrainingConfig:
     return config
 
 
-def main():
-    if len(sys.argv) != 3:
-        print("Usage: python3 run_experiment /path/to/experiment_config.yaml /path/to/where/results/are/stored")
-        exit()
+def execute_config(config_path, storage_path):
+    print("Reading config from", config_path)
 
-    config_path = os.path.abspath(sys.argv[1])
+    config_path = os.path.abspath(config_path)
 
     if not os.path.isfile(config_path):
         print("invalid path to config file")
         exit()
-
-    storage_path = os.path.abspath(sys.argv[2])
-    if not os.path.isdir(storage_path):
-        print('given storage path {} is not a directory'.format(storage_path))
-        exit()
-
-    print("Reading config from", config_path)
 
     with open(config_path, 'r') as fp:
         yaml_config = yaml.safe_load(fp)
@@ -187,10 +180,33 @@ def main():
 
     print("training took", time_elapsed, "seconds")
 
-    should_upload_and_shutdown = yaml_config['upload_and_shutdown_on_completion']
-    if should_upload_and_shutdown:
-        import subprocess
-        subprocess.call('../upload_and_shutdown.sh')
+
+def main():
+    if len(sys.argv) != 3:
+        print("Usage: python3 run_experiment /path/to/queue_folder/ /path/to/where/results/are/stored")
+        exit()
+
+    queue_path = os.path.abspath(sys.argv[1])
+
+    if not os.path.isdir(queue_path):
+        print("given queue path {} is not a directory".format(queue_path))
+        exit()
+
+    storage_path = os.path.abspath(sys.argv[2])
+    if not os.path.isdir(storage_path):
+        print('given storage path {} is not a directory'.format(storage_path))
+        exit()
+
+    for file in os.listdir(queue_path):
+        if "yaml" in file:
+            config_path = os.path.join(queue_path, file)
+            execute_config(config_path, storage_path)
+
+    subprocess.call('../upload.sh')
+
+    time.sleep(3)
+
+    subprocess.call('sudo shutdown -h now'.split(" "))
 
 
 if __name__ == '__main__':
