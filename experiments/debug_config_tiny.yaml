@@ -5,7 +5,7 @@
 #####################
 
 # unique name for this set of parameters. Make sure it's a valid folder name.
-name: 'example-config'
+name: 'debug-tiny-config'
 
 training:
   - dim_in:  [64, 64, 1]   # Should always be a 1-channeled image (gray-scale)
