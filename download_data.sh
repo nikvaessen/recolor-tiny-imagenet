@@ -27,7 +27,7 @@ fi
 ENCODED_VAL=encoded_val.zip
 ENCODED_VAL_URL=${prefix}${ENCODED_VAL}
 
-if [[ ! -f ${ENCODED_TRAIN} ]]; then
+if [[ ! -f ${ENCODED_VAL} ]]; then
     gsutil cp -n ${ENCODED_VAL_URL} .
     unzip ${ENCODED_VAL}
 fi
