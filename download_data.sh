@@ -11,19 +11,23 @@ if [[ ! -f ${TINY_FILE} ]]; then
     unzip ${TINY_FILE}
 fi
 
-SOFT_ENCODE_TRAIN_VAL=soft_encoded.zip
-TRAIN_VAL_URL=https://storage.googleapis.com/kth-dd2424-bucket/soft_encoded.zip
+mkdir -p npz-tiny-imagenet
+cd npz-tiny-imagenet
 
-if [[ ! -f ${SOFT_ENCODE_TRAIN_VAL} ]]; then
-    wget ${TRAIN_VAL_URL}
-    unzip ${SOFT_ENCODE_TRAIN_VAL}
+prefix=gs://kth-dd2424-bucket/
+
+ENCODED_TRAIN=encoded_train.zip
+ENCODED_TRAIN_URL=${prefix}${ENCODED_TRAIN}
+
+if [[ ! -f ${ENCODED_TRAIN} ]]; then
+    gsutil cp -n ${ENCODED_TRAIN_URL} .
+    unzip ${ENCODED_TRAIN}
 fi
 
+ENCODED_VAL=encoded_val.zip
+ENCODED_VAL_URL=${prefix}${ENCODED_VAL}
 
-SOFT_ENCODE_TEST=test.zip
-TEST_URL=https://storage.googleapis.com/kth-dd2424-bucket/test.zip
-
-if [[ ! -f ${SOFT_ENCODE_TEST} ]]; then
-    wget ${TEST_URL}
-    unzip ${SOFT_ENCODE_TEST}
+if [[ ! -f ${ENCODED_TRAIN} ]]; then
+    gsutil cp -n ${ENCODED_VAL_URL} .
+    unzip ${ENCODED_VAL}
 fi

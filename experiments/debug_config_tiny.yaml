@@ -12,7 +12,7 @@ training:
   - dim_out: [64, 64, 262]   # Should depend on mode (either 262 or 3 output channels)
   - n_epochs: 10
   - n_workers: 2
-  - batch_size: 8
+  - batch_size: 64
   - shuffle: true
 
   # one of 'grey-in-ab-out' or 'grey-in-softencode-out'
@@ -21,7 +21,7 @@ training:
   - mode: 'compressed-mode'
 
   # one of 'tiny-imagenet-dataset-full' or 'tiny-imagenet-dataset-tiny' or 'debug-dataset'
-  - dataset: 'debug-dataset'
+  - dataset: 'tiny-imagenet-dataset-tiny'
 
   # one of 'multinomial_loss' or `weighted_multinomial_loss`
   - loss: 'multinomial_loss'
@@ -40,11 +40,11 @@ callbacks:
           - path_to_colorisation_images: '../recolor/saved_objects/tracked_pictures.txt'
           - progression_period: 3
       - periodically-save-model:
-          - save_periodically: false
+          - save_periodically: true
           - psm_period: 2  # aim for something around n_epochs/5
           - psm_file_name: 'model.{epoch:02d}-loss_{val_loss:.2f}.hdf5'
       - save-best-model:
-          - save_best: false
+          - save_best: true
           - sbm_file_name: 'best-model.hdf5'
 
-upload_and_shutdown_on_completion: false
+upload_and_shutdown_on_completion: true
