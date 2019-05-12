@@ -5,14 +5,14 @@
 #####################
 
 # unique name for this set of parameters. Make sure it's a valid folder name.
-name: 'm-loss-config'
+name: 'weighted-m-loss-config'
 
 training:
   - dim_in:  [64, 64, 1]   # Should always be a 1-channeled image (gray-scale)
   - dim_out: [64, 64, 262]   # Should depend on mode (either 262 or 3 output channels)
-  - n_epochs: 2000
-  - n_workers: 3
-  - queue_size: 2
+  - n_epochs: 100
+  - n_workers: 6
+  - queue_size: 4
   - batch_size: 256
   - shuffle: true
 
@@ -26,7 +26,7 @@ training:
   - dataset: 'tiny-imagenet-dataset-tiny'
 
   # one of 'multinomial_loss' or `weighted_multinomial_loss`
-  - loss: 'multinomial_loss'
+  - loss: 'weighted_multinomial_loss'
 
 callbacks:
   - tensorboard:
@@ -40,10 +40,10 @@ callbacks:
       - colorisation-progress:
           - save_colorisation: true
           - path_to_colorisation_images: '../recolor/saved_objects/tracked_pictures.txt'
-          - progression_period: 3
+          - progression_period: 5
       - periodically-save-model:
           - save_periodically: true
-          - psm_period: 2  # aim for something around n_epochs/5
+          - psm_period: 20  # aim for something around n_epochs/5
           - psm_file_name: 'model.{epoch:02d}-loss_{val_loss:.2f}.hdf5'
       - save-best-model:
           - save_best: true
