@@ -10,7 +10,7 @@ name: 'runtime-config'
 training:
   - dim_in:  [64, 64, 1]   # Should always be a 1-channeled image (gray-scale)
   - dim_out: [64, 64, 262]   # Should depend on mode (either 262 or 3 output channels)
-  - n_epochs: 10
+  - n_epochs: 3
   - n_workers: 3
   - queue_size: 1
   - batch_size: 32
