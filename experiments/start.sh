@@ -3,7 +3,7 @@
 set -e
 
 tmux new-session -d -s exp
-tmux send -t project_experiments "source .env/bin/activate" ENTER
+tmux send -t project_experiments "source venv/bin/activate" ENTER
 tmux send -t project_experiments "export PYTHONPATH=${PYTHONPATH}:../" ENTER
 tmux send -t project_experiments "python3 run_experiments.py queue/ results/" ENTER
 
