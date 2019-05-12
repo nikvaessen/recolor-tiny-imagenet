@@ -11,7 +11,7 @@ training:
   - dim_in:  [64, 64, 1]   # Should always be a 1-channeled image (gray-scale)
   - dim_out: [64, 64, 262]   # Should depend on mode (either 262 or 3 output channels)
   - n_epochs: 10
-  - n_workers: 2
+  - n_workers: 3
   - batch_size: 8
   - shuffle: true
 
