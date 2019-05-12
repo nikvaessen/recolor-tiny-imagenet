@@ -16,8 +16,11 @@ from keras import backend as K
 
 from skimage import io, color, transform
 
-# from . import constants as c
-import constants as c # Activate for windows
+if os.name == 'nt':
+    import constants as c # Activate for windows
+else:
+    from . import constants as c
+
 ################################################################################
 # constants related to the binning
 

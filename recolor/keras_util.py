@@ -12,10 +12,12 @@ import pickle
 import numpy as np
 import keras
 
-# from . import image_util
-import image_util
-# from . import constants as c
-import constants as c
+if os.name == "nt":
+    import image_util
+    import constants as c
+else:
+    from . import image_util
+    from . import constants as c
 
 ################################################################################
 # Define different ways of reading the data

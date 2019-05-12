@@ -126,11 +126,11 @@ test_set_tiny_file_paths = load_pickled_data(_training_set_tiny_path)
 # subset of tiny-imagenet-200
 debug_dataset = 'debug-dataset'
 
-training_set_debug_file_paths = training_set_tiny_file_paths[0:128]
+training_set_debug_file_paths = training_set_tiny_file_paths[0:16]
 
-validation_set_debug_file_paths = validation_set_tiny_file_paths[0:128]
+validation_set_debug_file_paths = validation_set_tiny_file_paths[0:16]
 
-test_set_tiny_debug_paths = test_set_tiny_file_paths[0:128]
+test_set_tiny_debug_paths = test_set_tiny_file_paths[0:16]
 
 
 ################################################################################

@@ -151,6 +151,9 @@ def main():
 
     print("Storing results in", storage_path)
 
+    with open(os.path.join(storage_path, "config.json"), 'w') as f:
+        json.dump(yaml_config, f, indent=4)
+
     training_config = get_training_config(yaml_config, storage_path)
 
     start_training_timestamp = time.time()
@@ -162,10 +165,10 @@ def main():
 
     print("training took", time_elapsed, "seconds")
 
-    should_shutdown = yaml_config['shutdown-on-completion']
-    if should_shutdown:
+    should_upload_and_shutdown = yaml_config['upload_and_shutdown_on_completion']
+    if should_upload_and_shutdown:
         import subprocess
-        subprocess.call('sudo shutdown')
+        subprocess.call('../upload_and_shutdown.sh')
 
 
 if __name__ == '__main__':
