@@ -355,6 +355,7 @@ def train(model: Sequential, config: TrainingConfig):
                         validation_data=validation_generator,
                         use_multiprocessing=True,
                         workers=config.n_workers,
+                        max_queue_size=2,
                         verbose=1,
                         epochs=config.n_epochs,
                         callbacks=callback_list)
