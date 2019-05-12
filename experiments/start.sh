@@ -2,7 +2,9 @@
 
 set -e
 
-tmux kill-server
+if tmux info &> /dev/null; then
+  tmux kill-server
+fi
 
 tmux new-session -d -s exp
 tmux send -t exp "source ../venv/bin/activate" ENTER
