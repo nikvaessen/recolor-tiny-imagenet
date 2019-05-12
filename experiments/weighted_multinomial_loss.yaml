@@ -21,6 +21,7 @@ training:
   - mode: 'grey-in-softencode-out'
 
   # one of 'tiny-imagenet-dataset-full' or 'tiny-imagenet-dataset-tiny' or 'debug-dataset'
+  # or 'tiny-imagenet-dataset-tiny-uncompressed'
   - dataset: 'tiny-imagenet-dataset-tiny'
 
   # one of 'multinomial_loss' or `weighted_multinomial_loss`
