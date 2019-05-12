@@ -12,6 +12,7 @@ training:
   - dim_out: [64, 64, 262]   # Should depend on mode (either 262 or 3 output channels)
   - n_epochs: 10
   - n_workers: 2
+  - queue_size: 2
   - batch_size: 8
   - shuffle: true
 

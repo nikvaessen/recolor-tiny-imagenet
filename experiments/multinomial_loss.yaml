@@ -5,13 +5,14 @@
 #####################
 
 # unique name for this set of parameters. Make sure it's a valid folder name.
-name: 'example-config'
+name: 'm-loss-config'
 
 training:
   - dim_in:  [64, 64, 1]   # Should always be a 1-channeled image (gray-scale)
   - dim_out: [64, 64, 262]   # Should depend on mode (either 262 or 3 output channels)
   - n_epochs: 2000
   - n_workers: 3
+  - queue_size: 2
   - batch_size: 256
   - shuffle: true
 

@@ -210,6 +210,7 @@ class TrainingConfig:
                  dim_out,
                  n_epochs,
                  n_workers,
+                 queue_size,
                  batch_size,
                  shuffle,
                  mode,
@@ -232,6 +233,7 @@ class TrainingConfig:
         self.dim_out = dim_out
         self.n_epochs = n_epochs
         self.n_workers = n_workers
+        self.queue_size = queue_size
         self.batch_size = batch_size
         self.shuffle = shuffle
 
@@ -355,7 +357,7 @@ def train(model: Sequential, config: TrainingConfig):
                         validation_data=validation_generator,
                         use_multiprocessing=True,
                         workers=config.n_workers,
-                        max_queue_size=2,
+                        max_queue_size=config.queue_size,
                         verbose=1,
                         epochs=config.n_epochs,
                         callbacks=callback_list)

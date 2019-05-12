@@ -54,12 +54,13 @@ def get_training_config(yaml_config, storage_path) -> TrainingConfig:
     dim_out = training[1]['dim_out']
     n_epochs = training[2]['n_epochs']
     n_workers = training[3]['n_workers']
-    batch_size = training[4]['batch_size']
-    shuffle = training[5]['shuffle']
+    queue_size = training[4]['queue_size']
+    batch_size = training[5]['batch_size']
+    shuffle = training[6]['shuffle']
 
-    mode = training[6]['mode']
-    dataset = training[7]['dataset']
-    loss = training[8]['loss']
+    mode = training[7]['mode']
+    dataset = training[8]['dataset']
+    loss = training[9]['loss']
 
     # callback obj
     callbacks = yaml_config['callbacks']
@@ -75,8 +76,6 @@ def get_training_config(yaml_config, storage_path) -> TrainingConfig:
         reduce_lr_on_plateau = keras.callbacks.ReduceLROnPlateau(factor=reduce_lr_on_plateau_factor,
                               patience=reduce_lr_on_plateau_patience, cooldown=reduce_lr_on_plateau_cooldown
                                                            )
-
-
     save = yaml_config['callbacks'][2]['save']
 
     save_colored_image_progress = save[0]['colorisation-progress'][0]['save_colorisation']
@@ -125,6 +124,7 @@ def get_training_config(yaml_config, storage_path) -> TrainingConfig:
         dim_out,
         n_epochs,
         n_workers,
+        queue_size,
         batch_size,
         shuffle,
         mode,
