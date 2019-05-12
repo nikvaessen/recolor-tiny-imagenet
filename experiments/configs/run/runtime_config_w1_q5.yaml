@@ -1,0 +1,51 @@
+#####################
+###
+### ADDING A NEW key REQUIRES CHANGING THE PARSER METHOD IN run_experiments.py
+###
+#####################
+
+# unique name for this set of parameters. Make sure it's a valid folder name.
+name: 'runtime-config'
+
+training:
+  - dim_in:  [64, 64, 1]   # Should always be a 1-channeled image (gray-scale)
+  - dim_out: [64, 64, 262]   # Should depend on mode (either 262 or 3 output channels)
+  - n_epochs: 10
+  - n_workers: 1
+  - queue_size: 5
+  - batch_size: 32
+  - shuffle: true
+
+  # one of 'grey-in-ab-out' or 'grey-in-softencode-out'
+  # 'grey-in-ab-out' should be used for l2 loss
+  # 'grey-in-softencode-out' should be used multinomial loss
+  - mode: 'compressed-mode'
+
+  # one of 'tiny-imagenet-dataset-full' or 'tiny-imagenet-dataset-tiny' or 'debug-dataset'
+  - dataset: 'debug-dataset'
+
+  # one of 'multinomial_loss' or `weighted_multinomial_loss`
+  - loss: 'multinomial_loss'
+
+callbacks:
+  - tensorboard:
+      - use_tensorboard: true
+  - reducing-learning-rate:
+      - reduce_lr_on_plateau: false
+      - factor: 0.9
+      - patience: 2
+      - cooldown: 1
+  - save:
+      - colorisation-progress:
+          - save_colorisation: true
+          - path_to_colorisation_images: '../recolor/saved_objects/tracked_pictures.txt'
+          - progression_period: 3
+      - periodically-save-model:
+          - save_periodically: false
+          - psm_period: 2  # aim for something around n_epochs/5
+          - psm_file_name: 'model.{epoch:02d}-loss_{val_loss:.2f}.hdf5'
+      - save-best-model:
+          - save_best: false
+          - sbm_file_name: 'best-model.hdf5'
+
+upload_and_shutdown_on_completion: true
