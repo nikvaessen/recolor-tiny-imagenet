@@ -23,7 +23,7 @@ progression_subfolder = 'progression'
 subfolders = [models_subfolder, tensorboard_subfolder, progression_subfolder]
 
 
-def create_result_dir(yaml_config_dic, storage_dir_path):
+def create_result_dir(yaml_config_dic, storage_dir_path, restart=False):
     name = yaml_config_dic['name']
 
     experiment_path = os.path.join(storage_dir_path, name)
@@ -149,7 +149,7 @@ def get_training_config(yaml_config, storage_path) -> TrainingConfig:
     return config
 
 
-def execute_config(config_path, storage_path):
+def execute_config(config_path, storage_path, restart_model=None):
     print("Reading config from", config_path)
 
     config_path = os.path.abspath(config_path)
@@ -172,7 +172,7 @@ def execute_config(config_path, storage_path):
     training_config = get_training_config(yaml_config, storage_path)
 
     start_training_timestamp = time.time()
-    model = training_config.get_init_model()
+    model = training_config.get_init_model(restart_model=restart_model)
     train(model, training_config)
     end_training_timestamp = time.time()
 
@@ -182,8 +182,10 @@ def execute_config(config_path, storage_path):
 
 
 def main():
-    if len(sys.argv) != 3:
-        print("Usage: python3 run_experiment /path/to/queue_folder/ /path/to/where/results/are/stored")
+    n_args = len(sys.argv)
+    if n_args != 3 and n_args != 4:
+        print("Usage: python3 run_experiment /path/to/queue_folder/ "
+              "/path/to/where/results/are/stored <path/to/restart/model>")
         exit()
 
     queue_path = os.path.abspath(sys.argv[1])
@@ -197,10 +199,15 @@ def main():
         print('given storage path {} is not a directory'.format(storage_path))
         exit()
 
+    if n_args == 4:
+        model_path = os.path.abspath(sys.argv[3])
+    else:
+        model_path = None
+
     for file in os.listdir(queue_path):
         if "yaml" in file:
             config_path = os.path.join(queue_path, file)
-            execute_config(config_path, storage_path)
+            execute_config(config_path, storage_path, model_path)
 
     subprocess.call('../upload.sh')
 

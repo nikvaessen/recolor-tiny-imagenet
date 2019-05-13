@@ -294,7 +294,7 @@ class TrainingConfig:
 
         return training_generator, validation_generator
 
-    def get_init_model(self):
+    def get_init_model(self, restart_model=None):
         if self.loss == c.multinomial_loss:
             loss = multinomial_loss
         elif self.loss == c.weighted_multinomial_loss:
@@ -305,6 +305,9 @@ class TrainingConfig:
         model = init_model(loss_function=loss,
                            batch_size=self.batch_size,
                            input_shape=self.dim_in)
+
+        if restart_model is not None:
+            model.load_weights(restart_model)
 
         return model
 

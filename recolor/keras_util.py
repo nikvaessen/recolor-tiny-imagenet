@@ -305,6 +305,8 @@ class OutputProgress(keras.callbacks.Callback):
             grey = lab[:, :, 0:1]
             self.batch[idx, ] = grey
 
+        self.save_images('0_initial_prediction')
+
     def on_train_end(self, logs=None):
         self.save_images('0_training_end')
 
