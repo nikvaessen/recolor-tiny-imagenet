@@ -41,11 +41,11 @@ num_lab_bins = c.num_lab_bins
 # image loading and display
 
 
-def read_image(fn: str):
+def read_image(fn: str, as_gray=False):
     if os.name == 'nt':
         fn = fn.replace('\\', '/') # activate for Windows
 
-    return io.imread(fn)
+    return io.imread(fn, as_gray=as_gray)
 
 
 def save_image(fn, img):

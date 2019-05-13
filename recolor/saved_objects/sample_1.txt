@@ -1,0 +1,2 @@
+../data/tiny-imagenet-200/train/n01910747/images/n01910747_43.JPEG
+../data/tiny-imagenet-200/train/n01641577/images/n01641577_0.JPEG

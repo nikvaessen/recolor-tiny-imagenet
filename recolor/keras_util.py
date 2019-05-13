@@ -22,6 +22,7 @@ else:
 ################################################################################
 # Define different ways of reading the data
 
+
 def load_compressed_files(image_path):
     """
     Load the compressed file image_path.npz where the attribute input
@@ -121,7 +122,7 @@ class DataGenerator(keras.utils.Sequence):
         self.dim_in = dim_in
         self.dim_out = dim_out
         self.batch_size = batch_size
-        self.leftovers = c.n_training_set_tiny % batch_size
+        self.leftovers = len(data_paths) % batch_size
         self.data_paths = data_paths
         self.shuffle = shuffle
 
@@ -144,11 +145,10 @@ class DataGenerator(keras.utils.Sequence):
         If shuffle is set to True: shuffles input at the beginning of each epoch
         :return:
         '''
-
         if self.shuffle:
             self.indices = np.arange(len(self.data_paths))
             np.random.shuffle(self.indices)
-            self.indices = self.indices[:-self.leftovers]
+            self.indices = self.indices[:len(self.data_paths) - self.leftovers]
         else:
             self.indices = np.arange(len(self.data_paths) - self.leftovers)
 
@@ -272,15 +272,8 @@ class OutputProgress(keras.callbacks.Callback):
         with open(os.path.abspath(image_paths_file), 'r') as f:
             image_paths = f.readlines()
 
-        image_paths = [path.strip() for path in image_paths]
-
-        self.batch = np.empty((len(image_paths), *input_shape))
-
-        for idx, path in enumerate(image_paths):
-            rgb = image_util.read_image(path)
-            lab = image_util.convert_rgb_to_lab(rgb)
-            grey = lab[:, :, 0:1]
-            self.batch[idx, ] = grey
+        self.image_paths = [path.strip() for path in image_paths]
+        self.batch = np.empty((len(self.image_paths), *input_shape))
 
         self.root_dir = root_dir
         self.period = every_n_epochs
@@ -294,8 +287,26 @@ class OutputProgress(keras.callbacks.Callback):
             self.epochs_since_last_save = 0
             self.save_images(str(epoch + 1))
 
+    def on_train_begin(self, logs=None):
+        # create batch and store rgb and grey image
+        for idx, path in enumerate(self.image_paths):
+            rgb = image_util.read_image(path)
+
+            save_path = "img_{}_epoch_{}.png".format(idx, "0_ground_truth")
+            save_path = os.path.join(self.root_dir, save_path)
+            image_util.save_image(save_path, rgb)
+
+            grey = image_util.read_image(path, as_gray=True)
+            save_path = "img_{}_epoch_{}.png".format(idx, "0_grey")
+            save_path = os.path.join(self.root_dir, save_path)
+            image_util.save_image(save_path, grey)
+
+            lab = image_util.convert_rgb_to_lab(rgb)
+            grey = lab[:, :, 0:1]
+            self.batch[idx, ] = grey
+
     def on_train_end(self, logs=None):
-        self.save_images('training_end')
+        self.save_images('0_training_end')
 
     def save_images(self, epoch_string: str):
         y = self.model.predict(self.batch)
