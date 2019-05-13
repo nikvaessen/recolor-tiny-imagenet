@@ -41,6 +41,8 @@ def init_model():
     final_model = Model(input=model.input, output=predictions)
     final_model.compile(loss='categorical_crossentropy', optimizer=optimizers.SGD(lr=0.0001, momentum=0.85), metrics=['accuracy'])
 
+    return final_model
+
 ################################################################################
 # enable training of network
 
@@ -48,7 +50,7 @@ subfolders = ['models', 'tensorboard-log-dir', 'progression']
 def create_result_dir(path):
     name = 'vgg-classification'
 
-    experiment_path = './' + path + '/' + name + '/'
+    experiment_path = path + '/' + name + '/'
 
     if not os.path.isdir(experiment_path):
         os.mkdir(experiment_path)
@@ -70,7 +72,9 @@ def create_result_dir(path):
             return experiment_path_subfolder
 
 
+
 def train(model: Sequential, mode):
+
 
     if mode == 'gray':
         with open('./train_ids_gray.pickle', 'rb') as fp:
@@ -86,15 +90,25 @@ def train(model: Sequential, mode):
         with open('./validation_ids_recolour.pickle', 'rb') as fp:
             validation_paths = pickle.load(fp)
 
+    elif mode == 'colour':
+        with open('./train_ids_tiny.pickle', 'rb') as fp:
+            training_paths = pickle.load(fp)
+        with open('./validation_ids_tiny.pickle', 'rb') as fp:
+            validation_paths = pickle.load(fp)
+
+
     ### params
-    dim_in = (64, 64, 1)
-    dim_out = (64, 64, 3)
+    dim_in = (64, 64, 3)
     shuffle = True
     batch_size = 32
+    n_classes = 30
+    dim_out = (n_classes)
 
 
-    training_generator = data_utils.DataGenerator(training_paths, batch_size, dim_in, dim_out, shuffle, mode)
-    validation_generator = data_utils.DataGenerator(validation_paths, batch_size, dim_in, dim_out, shuffle, mode)
+    training_generator = data_utils.DataGenerator(training_paths, batch_size, dim_in, dim_out, shuffle,
+                                                  mode, 'training')
+    validation_generator = data_utils.DataGenerator(validation_paths, batch_size, dim_in, dim_out, shuffle,
+                                                    mode, 'validation')
 
     callback_list = list()
 
@@ -109,12 +123,12 @@ def train(model: Sequential, mode):
     callback_list.append(p_save_callback)
 
     print("saving best model")
-    best_save_callback = callbacks.ModelCheckpoint(create_result_dir(create_result_dir('bestmodel')),
+    best_save_callback = callbacks.ModelCheckpoint(create_result_dir(create_result_dir('bestmodels')),
                                                    save_best_only=True)
     callback_list.append(best_save_callback)
 
     n_workers = 2
-    n_epochs = 100
+    n_epochs = 50
     model.fit_generator(generator=training_generator,
                         validation_data=validation_generator,
                         use_multiprocessing=True,
@@ -122,6 +136,14 @@ def train(model: Sequential, mode):
                         verbose=1,
                         epochs=n_epochs,
                         callbacks=callback_list)
+
+def main():
+    model = init_model()
+    train(model, 'colour')
+
+if __name__ == '__main__':
+    main()
+
 
 
 
