@@ -22,6 +22,7 @@ else:
 ################################################################################
 # Define different ways of reading the data
 
+
 def load_compressed_files(image_path):
     """
     Load the compressed file image_path.npz where the attribute input
@@ -121,7 +122,7 @@ class DataGenerator(keras.utils.Sequence):
         self.dim_in = dim_in
         self.dim_out = dim_out
         self.batch_size = batch_size
-        self.leftovers = c.n_training_set_tiny % batch_size
+        self.leftovers = len(data_paths) % batch_size
         self.data_paths = data_paths
         self.shuffle = shuffle
 
@@ -144,11 +145,10 @@ class DataGenerator(keras.utils.Sequence):
         If shuffle is set to True: shuffles input at the beginning of each epoch
         :return:
         '''
-
         if self.shuffle:
             self.indices = np.arange(len(self.data_paths))
             np.random.shuffle(self.indices)
-            self.indices = self.indices[:-self.leftovers]
+            self.indices = self.indices[:len(self.data_paths) - self.leftovers]
         else:
             self.indices = np.arange(len(self.data_paths) - self.leftovers)
 
