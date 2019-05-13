@@ -15,6 +15,7 @@ import numpy as np
 import keras
 from keras import Sequential
 from keras import callbacks
+from keras import callbacks
 
 ################################################################################
 # Data Generator class loaded at training time to provide the data in the batches
@@ -81,72 +82,23 @@ class DataGenerator(keras.utils.Sequence):
 
         return X, y
 
-    def get_generators(self):
-        params = {
-            'dim_in': self.dim_in,
-            'dim_out': self.dim_out,
-            'batch_size': self.batch_size,
-            'shuffle': self.shuffle,
-            'mode': self.mode
-        }
+    def __len__(self):
+        # Denotes the number of batches per epoch
+        return int(np.floor(len(self.indices) / self.batch_size))
 
-        if self.mode == 'gray':
-            with open('./train_ids_gray.pickle', 'rb') as fp:
-                training_paths = pickle.load(fp)
+    def __getitem__(self, index):
+        # Generate one batch of data
+        # Generate indices of the batch
+        indices = self.indices[
+                  index * self.batch_size:(index + 1) * self.batch_size]
 
-            with open('./validation_ids_gray.pickle', 'rb') as fp:
-                validation_paths = pickle.load(fp)
+        # Find list of IDs
+        batch_paths = [self.data_paths[k] for k in indices]
 
-        elif self.mode == 'recoloured':
-            with open('./train_ids_recolour.pickle', 'rb') as fp:
-                training_paths = pickle.load(fp)
+        # Generate data
+        X, y = self.__data_generation(batch_paths)
 
-            with open('./validation_ids_recolour.pickle', 'rb') as fp:
-                validation_paths = pickle.load(fp)
-
-        print('using dataset:', self.dataset)
-        print("using {} training samples".format(len(training_paths)))
-        print('using {} validation samples'.format(len(validation_paths)))
-
-        training_generator = DataGenerator(training_paths, **params)
-        validation_generator = DataGenerator(validation_paths, **params)
-
-        return training_generator, validation_generator
-
-    def get_init_model(self):
-        model = self.init_model()
-        return model
-
-def train(model: Sequential, mode):
-
-    training_generator, validation_generator = DataGenerator.get_generators(mode)
-    callback_list = list()
-
-    print("using tensorboard")
-    tb_callback = callbacks.TensorBoard(log_dir=config.tensorboard_log_dir)
-    callback_list.append(tb_callback)
-
-    print("saving model every {} epcohs".format(config.periodically_save_model_period))
-    p_save_callback = callbacks.ModelCheckpoint(config.periodically_save_model_path,
-                                                period=config.periodically_save_model_period)
-    callback_list.append(p_save_callback)
-
-    if config.save_best_model:
-        print("saving best model")
-        best_save_callback = callbacks.ModelCheckpoint(config.save_best_model_path,
-                                                       save_best_only=True)
-        callback_list.append(best_save_callback)
-
-    model.fit_generator(generator=training_generator,
-                        validation_data=validation_generator,
-                        use_multiprocessing=True,
-                        workers=config.n_workers,
-                        verbose=1,
-                        epochs=config.n_epochs,
-                        callbacks=callback_list)
-
-
-
+        return X, y
 
 
 
