@@ -8,11 +8,14 @@
 import pickle
 import os
 import numpy as np
-# from . import image_util
-import image_util # Activate for windows
 
 from matplotlib import pyplot as plt
 from scipy.stats import norm
+
+if __name__ == "__main__" or __name__ == "probability_colours":
+    import image_util
+else:
+    from . import image_util
 
 
 class ColourProbability():
