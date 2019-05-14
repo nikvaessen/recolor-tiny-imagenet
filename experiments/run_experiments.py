@@ -214,11 +214,11 @@ def main():
             config_path = os.path.join(queue_path, file)
             execute_config(config_path, storage_path, model_path)
 
-    # subprocess.call('../upload.sh')
-    #
-    # time.sleep(3)
-    #
-    # subprocess.call('sudo shutdown -h now'.split(" "))
+    subprocess.call('../upload.sh')
+
+    time.sleep(3)
+
+    subprocess.call('sudo shutdown -h now'.split(" "))
 
 
 if __name__ == '__main__':
