@@ -32,14 +32,14 @@ def init_model():
     # Personalised Classifier
     o = model.output
     o = Flatten()(o)
-    o = Dense(4096, activation='relu')(o)
+    o = Dense(1024, activation='relu')(o)
     o = Dropout(0.5)(o)
-    o = Dense(4096, activation='relu')(o)
+    o = Dense(1024, activation='relu')(o)
     predictions = Dense(30, activation='softmax')(o)
 
     # Finalised model
     final_model = Model(input=model.input, output=predictions)
-    final_model.compile(loss='categorical_crossentropy', optimizer=optimizers.SGD(lr=0.0001, momentum=0.85), metrics=['accuracy'])
+    final_model.compile(loss='categorical_crossentropy', optimizer=optimizers.SGD(lr=0.0001, momentum=0.85), metrics=['categorical_crossentropy'])
 
     return final_model
 
@@ -113,22 +113,25 @@ def train(model: Sequential, mode):
     callback_list = list()
 
     print("using tensorboard")
-    tb_callback = callbacks.TensorBoard(log_dir=create_result_dir('tensorboard'))
+    tensor_board_dir = create_result_dir('tensorboard')
+    tb_callback = callbacks.TensorBoard(log_dir=tensor_board_dir)
     callback_list.append(tb_callback)
 
     saving_period = 10
     print("saving model every {} epochs".format(saving_period))
-    p_save_callback = callbacks.ModelCheckpoint(create_result_dir('models'),
+    model_dir = create_result_dir('models')
+    p_save_callback = callbacks.ModelCheckpoint(model_dir,
                                                 period=saving_period)
     callback_list.append(p_save_callback)
 
     print("saving best model")
-    best_save_callback = callbacks.ModelCheckpoint(create_result_dir(create_result_dir('bestmodels')),
+    best_model = create_result_dir('models')
+    best_save_callback = callbacks.ModelCheckpoint(best_model,
                                                    save_best_only=True)
     callback_list.append(best_save_callback)
 
     n_workers = 2
-    n_epochs = 50
+    n_epochs = 10
     model.fit_generator(generator=training_generator,
                         validation_data=validation_generator,
                         use_multiprocessing=True,
