@@ -5,15 +5,20 @@
 #####################
 
 # unique name for this set of parameters. Make sure it's a valid folder name.
-name: 'runtime-ssd-b-config'
+name: 'sample-1-config'
+
+# one of:
+# `cic_paper_network`    -> requires dim_in=(64,64,1)
+# `vgg_transfer_network` -> requires dim_in=(64,64,3)
+use_network: 'cic_paper_network'
 
 training:
   - dim_in:  [64, 64, 1]   # Should always be a 1-channeled image (gray-scale)
   - dim_out: [64, 64, 262]   # Should depend on mode (either 262 or 3 output channels)
-  - n_epochs: 3
-  - n_workers: 3
-  - queue_size: 5
-  - batch_size: 32
+  - n_epochs: 500
+  - n_workers: 1
+  - queue_size: 1
+  - batch_size: 1
   - shuffle: true
 
   # one of 'grey-in-ab-out' or 'grey-in-softencode-out'
@@ -30,20 +35,23 @@ training:
 callbacks:
   - tensorboard:
       - use_tensorboard: true
+  # trigger reduction of lr by 'factor' when difference between last loss and current loss < delta for 'patience' epochs
+  # after a reduction, 'cooldown' epochs will be ignored before reduction can potentially trigger again
   - reducing-learning-rate:
       - reduce_lr_on_plateau: false
       - factor: 0.9
       - patience: 2
       - cooldown: 1
+      - delta: 1
   - save:
       - colorisation-progress:
           - save_colorisation: true
-          - path_to_colorisation_images: '../recolor/saved_objects/tracked_pictures.txt'
-          - progression_period: 3
+          - path_to_colorisation_images: '../recolor/saved_objects/sample_1.txt'
+          - progression_period: 10
       - periodically-save-model:
-          - save_periodically: false
-          - psm_period: 2  # aim for something around n_epochs/5
-          - psm_file_name: 'model.{epoch:02d}-loss_{val_loss:.2f}.hdf5'
+          - save_periodically: true
+          - psm_period: 100  # aim for something around n_epochs/5
+          - psm_file_name: '1-sample-model.hdf5'
       - save-best-model:
           - save_best: false
           - sbm_file_name: 'best-model.hdf5'

@@ -16,9 +16,9 @@ from keras import backend as K
 
 from skimage import io, color, transform
 
-if os.name == 'nt':
-    import constants as c # Activate for windows
-else:
+if __name__ == '__main' or __name__ == 'image_util':
+    import constants as c
+else:  # name should be 'recolor.image_util'
     from . import constants as c
 
 ################################################################################

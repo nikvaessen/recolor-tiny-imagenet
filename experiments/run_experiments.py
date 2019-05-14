@@ -1,7 +1,7 @@
 ################################################################################
 # Will run each an experiment given by a 'yaml' experiment configuration
 #
-# Author(s): Nik Vaessen
+# Author(s): Nik Vaessen, Jade Cock
 ################################################################################
 
 import sys
@@ -13,7 +13,7 @@ import subprocess
 
 import keras
 
-from recolor.cic_paper_network import TrainingConfig, train
+from recolor.keras_util import TrainingConfig, train
 
 ################################################################################
 
@@ -49,6 +49,8 @@ def create_result_dir(yaml_config_dic, storage_dir_path, restart=False):
 
 
 def get_training_config(yaml_config, storage_path) -> TrainingConfig:
+    model = yaml_config['use_network']
+
     # training section
     training = yaml_config['training']
     
@@ -71,13 +73,11 @@ def get_training_config(yaml_config, storage_path) -> TrainingConfig:
     tensorboard_log_dir = os.path.join(storage_path, tensorboard_subfolder)
 
     reduce_lr_on_plateau = callbacks[1]['reducing-learning-rate'][0]['reduce_lr_on_plateau']
-    if reduce_lr_on_plateau:
-        reduce_lr_on_plateau_factor = callbacks[1]['reducing-learning-rate'][1]['factor']
-        reduce_lr_on_plateau_patience = callbacks[1]['reducing-learning-rate'][2]['patience']
-        reduce_lr_on_plateau_cooldown = callbacks[1]['reducing-learning-rate'][3]['cooldown']
-        reduce_lr_on_plateau = keras.callbacks.ReduceLROnPlateau(factor=reduce_lr_on_plateau_factor,
-                              patience=reduce_lr_on_plateau_patience, cooldown=reduce_lr_on_plateau_cooldown
-                                                           )
+    reduce_lr_on_plateau_factor = callbacks[1]['reducing-learning-rate'][1]['factor']
+    reduce_lr_on_plateau_patience = callbacks[1]['reducing-learning-rate'][2]['patience']
+    reduce_lr_on_plateau_cooldown = callbacks[1]['reducing-learning-rate'][3]['cooldown']
+    reduce_lr_on_plateau_delta = callbacks[1]['reducing-learning-rate'][4]['delta']
+
     save = yaml_config['callbacks'][2]['save']
 
     save_colored_image_progress = save[0]['colorisation-progress'][0]['save_colorisation']
@@ -122,6 +122,7 @@ def get_training_config(yaml_config, storage_path) -> TrainingConfig:
     # print("save_best_model_path", save_best_model_path)
     #
     config = TrainingConfig(
+        model,
         dim_in,
         dim_out,
         n_epochs,
@@ -135,6 +136,10 @@ def get_training_config(yaml_config, storage_path) -> TrainingConfig:
         use_tensorboard,
         tensorboard_log_dir,
         reduce_lr_on_plateau,
+        reduce_lr_on_plateau_factor,
+        reduce_lr_on_plateau_patience,
+        reduce_lr_on_plateau_cooldown,
+        reduce_lr_on_plateau_delta,
         save_colored_image_progress,
         image_paths_to_save,
         image_progression_log_dir,
@@ -209,11 +214,11 @@ def main():
             config_path = os.path.join(queue_path, file)
             execute_config(config_path, storage_path, model_path)
 
-    subprocess.call('../upload.sh')
-
-    time.sleep(3)
-
-    subprocess.call('sudo shutdown -h now'.split(" "))
+    # subprocess.call('../upload.sh')
+    #
+    # time.sleep(3)
+    #
+    # subprocess.call('sudo shutdown -h now'.split(" "))
 
 
 if __name__ == '__main__':
