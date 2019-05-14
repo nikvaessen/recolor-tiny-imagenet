@@ -32,14 +32,16 @@ def init_model():
     # Personalised Classifier
     o = model.output
     o = Flatten()(o)
-    o = Dense(1024, activation='relu')(o)
+    o = Dense(2048, activation='relu')(o)
     o = Dropout(0.5)(o)
-    o = Dense(1024, activation='relu')(o)
+    o = Dense(2048, activation='relu')(o)
     predictions = Dense(30, activation='softmax')(o)
 
     # Finalised model
+    adam = optimizers.adam()
     final_model = Model(input=model.input, output=predictions)
-    final_model.compile(loss='categorical_crossentropy', optimizer=optimizers.SGD(lr=0.0001, momentum=0.85), metrics=['categorical_crossentropy'])
+    final_model.compile(loss='categorical_crossentropy', optimizer=adam,
+                        metrics=['categorical_crossentropy', 'accuracy'])
 
     return final_model
 
@@ -131,7 +133,7 @@ def train(model: Sequential, mode):
     callback_list.append(best_save_callback)
 
     n_workers = 2
-    n_epochs = 10
+    n_epochs = 20
     model.fit_generator(generator=training_generator,
                         validation_data=validation_generator,
                         use_multiprocessing=True,
