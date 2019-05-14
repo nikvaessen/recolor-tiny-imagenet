@@ -41,8 +41,8 @@ callbacks:
   - reducing-learning-rate:
       - reduce_lr_on_plateau: true
       - factor: 0.9
-      - patience: 3
-      - cooldown: 5
+      - patience: 6
+      - cooldown: 10
       - delta: 1
   - save:
       - colorisation-progress:
