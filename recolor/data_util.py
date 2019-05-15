@@ -10,6 +10,8 @@ else:
     from . import image_util
     from . import constants as c
 
+import tensorflow as tf
+
 
 ################################################################################
 # stores paths to tiny-imagenet files as pickled arrays. These arrays
@@ -39,7 +41,7 @@ def generate_data_paths_and_pickle():
                     not is_grey_image(path):
                 train_ids.append(path)
 
-    with open('./train_ids.pickle', 'wb') as fp:
+    with open('./saved_objects/train_ids.pickle', 'wb') as fp:
         pickle.dump(train_ids, fp)
 
     print("created training id's")
@@ -54,7 +56,7 @@ def generate_data_paths_and_pickle():
                     not is_grey_image(path):
                 validation_ids.append(path)
 
-    with open('./validation_ids.pickle', 'wb') as fp:
+    with open('./saved_objects/validation_ids.pickle', 'wb') as fp:
         pickle.dump(validation_ids, fp)
 
     print("created validation id's")
@@ -70,7 +72,7 @@ def generate_data_paths_and_pickle():
                     not is_grey_image(path):
                 test_ids.append(path)
 
-    with open('./test_ids.pickle', 'wb') as fp:
+    with open('./saved_objects/test_ids.pickle', 'wb') as fp:
         pickle.dump(test_ids, fp)
 
     print("created test id's")
@@ -270,6 +272,98 @@ def count_number_of_images():
         test_paths = pickle.load(fp)
     print("Number of training images: ", len(test_paths))
 
+################################################################################
+# Create compressed tensor record data
+#
+
+def create_id_labels():
+    '''
+    Create files to map labels to their name labels, and to an arbitraty id from 0 to 200
+    :return:
+    '''
+    keys = load_keys()
+    label_path = "../data/tiny-imagenet-200/wnids.txt"
+    labels = []
+    with open(label_path) as f:
+        for line in f:
+            labels.append(line.split('\n')[0])
+
+    id_label = {}
+    label_id = {}
+    label_name = {}
+
+    for i, label in enumerate(labels):
+        name = keys[label]
+        id_label[i] = label
+        label_id[label] = i
+        label_name[label] = name
+        print('Label', label, 'coressponds to', name, 'with class', i)
+
+
+def wrap_int64(value):
+    '''
+    :param value:
+    :return: returns a list of number into a tfrecord object
+    '''
+    return tf.train.Feature(int64_list=tf.train.Int64List(value=[value]))
+
+
+def wrap_bytes(value):
+    '''
+
+    :param value:
+    :return: returns a list of object into a tfrecord object
+    '''
+    return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
+
+
+def convert(image_paths, out_path):
+    '''
+    This functions creates tf record object.
+    Inputs are the paths to the rgb pictures. This functions saves
+    the different images in their cielab format and in their soft encoded format
+    :param image_path: Path to the images to convert into a tfrecord object
+    :param out_path: Path where to save the tfrecord object
+    :return:
+    '''
+
+    print("Converting: " + out_path)
+    # Number of images. Used when printing the progress.
+    num_images = len(image_paths)
+
+    # Open a TFRecordWriter for the output-file.
+    with tf.python_io.TFRecordWriter(out_path) as writer:
+        # Iterate over all the image-paths
+        for i, (path, label) in enumerate(image_paths):
+            # Read the images
+            rgb = np.array(image_util.read_image(path))
+            cie = np.array(image_util.convert_rgb_to_lab(rgb))
+            se = np.array(image_util.soft_encode_lab_img(cie))
+
+            # Convert them into raw bytes
+            cie_bytes = cie.tostring()
+            se_bytes = se.tostring()
+
+            # Create a dict with the data saved in the record files
+
+            data = \
+                {
+                    'cie': wrap_bytes(cie_bytes),
+                    'label': wrap_bytes(label)
+                }
+
+            # Wrap the data as TensorFlow Features.
+            feature = tf.train.Features(feature=data)
+
+            # Wrap again as a TensorFlow Example.
+            example = tf.train.Example(features=feature)
+
+            # Serialize the data.
+            serialized = example.SerializeToString()
+
+            # Write the serialized data to the TFRecords file.
+            writer.write(serialized)
+
 
 ################################################################################
 # Create compress objects for inputs and outputs
@@ -362,10 +456,4 @@ def test_loading():
 
 
 if __name__ == '__main__':
-    # generate_data_paths_and_pickle()
-    # get_available_classes()
-    # get_tinytiny_dataset()
-    # save_softencode_ondisk()
-    # check_already_encoded_images()
-    # save_input_output_ondisk()
-    test_loading()
+    create_id_labels()
