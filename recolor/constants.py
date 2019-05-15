@@ -124,6 +124,22 @@ validation_set_tiny_uncompressed_file_paths = load_pickled_data(_validation_set_
 # test_set_tiny_uncompressed_file_paths = load_pickled_data(_test_set_tiny_uncompressed_path)
 
 # subset of tiny-imagenet-200
+tiny_imagenet_dataset_tiny = 'tiny-imagenet-dataset-tiny-uncompressed'
+
+_training_set_tiny_uncompressed_file_name = 'train_ids_tiny.pickle'
+_training_set_tiny_uncompressed_path = os.path.join(_root_dir, _training_set_tiny_uncompressed_file_name)
+training_set_tiny_uncompressed_file_paths = load_pickled_data(_training_set_tiny_uncompressed_path)
+n_training_set_tiny_uncompressed = 14892
+
+_validation_set_tiny_uncompressed_file_name = 'validation_ids_tiny.pickle'
+_validation_set_tiny_uncompressed_path = os.path.join(_root_dir, _training_set_tiny_uncompressed_file_name)
+validation_set_tiny_uncompressed_file_paths = load_pickled_data(_training_set_tiny_uncompressed_path)
+
+_test_set_tiny_uncompressed_file_name = 'test_ids_tiny.pickle'
+_test_set_tiny_uncompressed_path = os.path.join(_root_dir, _training_set_tiny_uncompressed_file_name)
+test_set_tiny_uncompressed_file_paths = load_pickled_data(_training_set_tiny_uncompressed_path)
+
+# subset of tiny-imagenet-200 using npz encoding
 tiny_imagenet_dataset_tiny = 'tiny-imagenet-dataset-tiny'
 
 _training_set_tiny_file_name = 'train_ids_npz.pickle'
@@ -148,8 +164,6 @@ _debug_end = _debug_num*_debug_bs
 training_set_debug_file_paths = training_set_tiny_file_paths[0:_debug_end]
 
 validation_set_debug_file_paths = validation_set_tiny_file_paths[0:_debug_end]
-
-# test_set_tiny_debug_paths = test_set_tiny_file_paths[0:_debug_end]
 
 
 ################################################################################

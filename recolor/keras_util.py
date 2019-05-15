@@ -8,6 +8,7 @@
 ################################################################################
 
 import os
+import pickle
 
 import numpy as np
 import keras
@@ -23,9 +24,23 @@ else:
     from . import constants as c
     from .networks import multinomial_loss, weighted_multinomial_loss, init_cic_model, init_vgg_transfer_model
 
-
 ################################################################################
 # Define different ways of reading the data
+
+def load_compressed_files(image_path):
+    """
+    Load the compressed file image_path.npz where the attribute input
+    is the cielab image, and where the attribute ouput is the soft
+    encoding version of the expected colour bin as a
+    (width*height*num_bins) np array
+    :param image_path: path to the npz file
+    :return: the cielab image and the soft encoded image in that order
+    """
+
+    compressed = np.load(image_path)
+    cielab, soft_encode = compressed['input'], compressed['output']
+
+    return cielab, soft_encode
 
 
 def load_compressed_files(image_path):
@@ -183,6 +198,7 @@ class DataGenerator(keras.utils.Sequence):
         If shuffle is set to True: shuffles input at the beginning of each epoch
         :return:
         '''
+
         if self.shuffle:
             self.indices = np.arange(len(self.data_paths))
             np.random.shuffle(self.indices)
@@ -204,8 +220,8 @@ class DataGenerator(keras.utils.Sequence):
             # Store sample
             # print(path)
             inp, outp = self.image_load_fn(path)
-            X[i,] = inp
-            y[i,] = outp
+            X[i, ] = inp
+            y[i, ] = outp
 
         return X, y
 
@@ -313,6 +329,8 @@ class TrainingConfig:
 
     models = [cic_model, vgg_model]
 
+
+
     modes = [DataGenerator.compressed_mode,
              DataGenerator.mode_grey_in_softencode_out,
              DataGenerator.mode_grey_in_ab_out,
@@ -354,14 +372,6 @@ class TrainingConfig:
                  save_best_model,
                  save_best_model_path):
 
-        self.model = self._validate_arg_and_return(model, TrainingConfig.models)
-        self.dim_in = dim_in
-        self.dim_out = dim_out
-        self.n_epochs = n_epochs
-        self.n_workers = n_workers
-        self.queue_size = queue_size
-        self.batch_size = batch_size
-        self.shuffle = shuffle
 
         self.mode = self._validate_arg_and_return(mode, TrainingConfig.modes)
         self.dataset = self._validate_arg_and_return(dataset, TrainingConfig.datasets)
