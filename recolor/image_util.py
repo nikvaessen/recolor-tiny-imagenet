@@ -16,8 +16,11 @@ from keras import backend as K
 
 from skimage import io, color, transform
 
-# from . import constants as c
-import constants as c # Activate for windows
+if __name__ == '__main' or __name__ == 'image_util':
+    import constants as c
+else:  # name should be 'recolor.image_util'
+    from . import constants as c
+
 ################################################################################
 # constants related to the binning
 
@@ -38,11 +41,11 @@ num_lab_bins = c.num_lab_bins
 # image loading and display
 
 
-def read_image(fn: str):
+def read_image(fn: str, as_gray=False):
     if os.name == 'nt':
         fn = fn.replace('\\', '/') # activate for Windows
 
-    return io.imread(fn)
+    return io.imread(fn, as_gray=as_gray)
 
 
 def save_image(fn, img):

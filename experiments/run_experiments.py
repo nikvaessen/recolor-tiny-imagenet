@@ -1,17 +1,19 @@
 ################################################################################
 # Will run each an experiment given by a 'yaml' experiment configuration
 #
-# Author(s): Nik Vaessen
+# Author(s): Nik Vaessen, Jade Cock
 ################################################################################
 
 import sys
 import os
 import yaml
 import json
-import keras
 import time
+import subprocess
 
-from recolor.cic_paper_network import TrainingConfig, train
+import keras
+
+from recolor.keras_util import TrainingConfig, train
 
 ################################################################################
 
@@ -21,7 +23,7 @@ progression_subfolder = 'progression'
 subfolders = [models_subfolder, tensorboard_subfolder, progression_subfolder]
 
 
-def create_result_dir(yaml_config_dic, storage_dir_path):
+def create_result_dir(yaml_config_dic, storage_dir_path, restart=False):
     name = yaml_config_dic['name']
 
     experiment_path = os.path.join(storage_dir_path, name)
@@ -47,6 +49,8 @@ def create_result_dir(yaml_config_dic, storage_dir_path):
 
 
 def get_training_config(yaml_config, storage_path) -> TrainingConfig:
+    model = yaml_config['use_network']
+
     # training section
     training = yaml_config['training']
     
@@ -54,12 +58,13 @@ def get_training_config(yaml_config, storage_path) -> TrainingConfig:
     dim_out = training[1]['dim_out']
     n_epochs = training[2]['n_epochs']
     n_workers = training[3]['n_workers']
-    batch_size = training[4]['batch_size']
-    shuffle = training[5]['shuffle']
+    queue_size = training[4]['queue_size']
+    batch_size = training[5]['batch_size']
+    shuffle = training[6]['shuffle']
 
-    mode = training[6]['mode']
-    dataset = training[7]['dataset']
-    loss = training[8]['loss']
+    mode = training[7]['mode']
+    dataset = training[8]['dataset']
+    loss = training[9]['loss']
 
     # callback obj
     callbacks = yaml_config['callbacks']
@@ -68,14 +73,10 @@ def get_training_config(yaml_config, storage_path) -> TrainingConfig:
     tensorboard_log_dir = os.path.join(storage_path, tensorboard_subfolder)
 
     reduce_lr_on_plateau = callbacks[1]['reducing-learning-rate'][0]['reduce_lr_on_plateau']
-    if reduce_lr_on_plateau:
-        reduce_lr_on_plateau_factor = callbacks[1]['reducing-learning-rate'][1]['factor']
-        reduce_lr_on_plateau_patience = callbacks[1]['reducing-learning-rate'][2]['patience']
-        reduce_lr_on_plateau_cooldown = callbacks[1]['reducing-learning-rate'][3]['cooldown']
-        reduce_lr_on_plateau = keras.callbacks.ReduceLROnPlateau(factor=reduce_lr_on_plateau_factor,
-                              patience=reduce_lr_on_plateau_patience, cooldown=reduce_lr_on_plateau_cooldown
-                                                           )
-
+    reduce_lr_on_plateau_factor = callbacks[1]['reducing-learning-rate'][1]['factor']
+    reduce_lr_on_plateau_patience = callbacks[1]['reducing-learning-rate'][2]['patience']
+    reduce_lr_on_plateau_cooldown = callbacks[1]['reducing-learning-rate'][3]['cooldown']
+    reduce_lr_on_plateau_delta = callbacks[1]['reducing-learning-rate'][4]['delta']
 
     save = yaml_config['callbacks'][2]['save']
 
@@ -98,11 +99,35 @@ def get_training_config(yaml_config, storage_path) -> TrainingConfig:
                                         models_subfolder,
                                         save_best_model_fn)
 
+    # print("dim_in", dim_in)
+    # print("dim_out", dim_out)
+    # print("n_epochs", n_epochs)
+    # print("n_workers", n_workers)
+    # print("batch_size", batch_size)
+    # print("shuffle", shuffle)
+    # print("mode", mode)
+    # print("dataset", dataset)
+    # print("loss", loss)
+    # print("use_tensorboard", use_tensorboard)
+    # print("tensorboard_log_dir", tensorboard_log_dir)
+    # print("reduce_lr_on_plateau", reduce_lr_on_plateau)
+    # print("save_colored_image_progress", save_colored_image_progress)
+    # print("image_paths_to_save", image_paths_to_save)
+    # print("image_progression_log_dir", image_progression_log_dir)
+    # print("image_progression_period", image_progression_period)
+    # print("periodically_save_model", periodically_save_model)
+    # print("periodically_save_model_path", periodically_save_model_path)
+    # print("periodically_save_model_period", periodically_save_model_period)
+    # print("save_best_model", save_best_model)
+    # print("save_best_model_path", save_best_model_path)
+    #
     config = TrainingConfig(
+        model,
         dim_in,
         dim_out,
         n_epochs,
         n_workers,
+        queue_size,
         batch_size,
         shuffle,
         mode,
@@ -111,6 +136,10 @@ def get_training_config(yaml_config, storage_path) -> TrainingConfig:
         use_tensorboard,
         tensorboard_log_dir,
         reduce_lr_on_plateau,
+        reduce_lr_on_plateau_factor,
+        reduce_lr_on_plateau_patience,
+        reduce_lr_on_plateau_cooldown,
+        reduce_lr_on_plateau_delta,
         save_colored_image_progress,
         image_paths_to_save,
         image_progression_log_dir,
@@ -125,23 +154,14 @@ def get_training_config(yaml_config, storage_path) -> TrainingConfig:
     return config
 
 
-def main():
-    if len(sys.argv) != 3:
-        print("Usage: python3 run_experiment /path/to/experiment_config.yaml /path/to/where/results/are/stored")
-        exit()
+def execute_config(config_path, storage_path, restart_model=None):
+    print("Reading config from", config_path)
 
-    config_path = os.path.abspath(sys.argv[1])
+    config_path = os.path.abspath(config_path)
 
     if not os.path.isfile(config_path):
         print("invalid path to config file")
         exit()
-
-    storage_path = os.path.abspath(sys.argv[2])
-    if not os.path.isdir(storage_path):
-        print('given storage path {} is not a directory'.format(storage_path))
-        exit()
-
-    print("Reading config from", config_path)
 
     with open(config_path, 'r') as fp:
         yaml_config = yaml.safe_load(fp)
@@ -151,10 +171,13 @@ def main():
 
     print("Storing results in", storage_path)
 
+    with open(os.path.join(storage_path, "config.json"), 'w') as f:
+        json.dump(yaml_config, f, indent=4)
+
     training_config = get_training_config(yaml_config, storage_path)
 
     start_training_timestamp = time.time()
-    model = training_config.get_init_model()
+    model = training_config.get_init_model(restart_model=restart_model)
     train(model, training_config)
     end_training_timestamp = time.time()
 
@@ -162,10 +185,40 @@ def main():
 
     print("training took", time_elapsed, "seconds")
 
-    should_shutdown = yaml_config['shutdown-on-completion']
-    if should_shutdown:
-        import subprocess
-        subprocess.call('sudo shutdown')
+
+def main():
+    n_args = len(sys.argv)
+    if n_args != 3 and n_args != 4:
+        print("Usage: python3 run_experiment /path/to/queue_folder/ "
+              "/path/to/where/results/are/stored <path/to/restart/model>")
+        exit()
+
+    queue_path = os.path.abspath(sys.argv[1])
+
+    if not os.path.isdir(queue_path):
+        print("given queue path {} is not a directory".format(queue_path))
+        exit()
+
+    storage_path = os.path.abspath(sys.argv[2])
+    if not os.path.isdir(storage_path):
+        print('given storage path {} is not a directory'.format(storage_path))
+        exit()
+
+    if n_args == 4:
+        model_path = os.path.abspath(sys.argv[3])
+    else:
+        model_path = None
+
+    for file in os.listdir(queue_path):
+        if "yaml" in file:
+            config_path = os.path.join(queue_path, file)
+            execute_config(config_path, storage_path, model_path)
+
+    subprocess.call('../upload.sh')
+
+    time.sleep(3)
+
+    subprocess.call('sudo shutdown -h now'.split(" "))
 
 
 if __name__ == '__main__':

@@ -5,17 +5,17 @@
 #####################
 
 # unique name for this set of parameters. Make sure it's a valid folder name.
-name: 'example-config'
+name: 'vgg-transfer'
 
 # one of:
 # `cic_paper_network`    -> requires dim_in=(64,64,1)
 # `vgg_transfer_network` -> requires dim_in=(64,64,3)
-use_network: 'cic_paper_network'
+use_network: 'vgg_transfer_network'
 
 training:
-  - dim_in:  [64, 64, 1]     # Should be 1 or 3 depending on 'used network`
+  - dim_in:  [64, 64, 3]     # Should be 1 or 3 depending on 'used network`
   - dim_out: [64, 64, 262]   # Should be 2 or 262 depending on 'mode' and 'loss'
-  - n_epochs: 10
+  - n_epochs: 500
   - n_workers: 2
   - queue_size: 2
   - batch_size: 8
@@ -26,9 +26,9 @@ training:
   # 'grey-in-softencode-out' should be used for (weighted) multinomial loss
   # 'compressed mode' is equal to 'grey-in-softencode-out' but loads faster
   # `rgb-in-softencode-out` should be used for the transfer-learning vgg net
-  - mode: 'compressed-mode'
+  - mode: 'rgb-in-softencode-out'
 
-  # one of 'tiny-imagenet-dataset-full', 'tiny-imagenet-dataset-tiny'
+  # one of 'tiny-imagenet-dataset-full', 'tiny-imagenet-dataset-tiny',
   # or 'debug-dataset'
   - dataset: 'debug-dataset'
 
@@ -50,7 +50,7 @@ callbacks:
       - colorisation-progress:
           - save_colorisation: true
           - path_to_colorisation_images: '../recolor/saved_objects/tracked_pictures.txt'
-          - progression_period: 3
+          - progression_period: 50
       - periodically-save-model:
           - save_periodically: false
           - psm_period: 2  # aim for something around n_epochs/5

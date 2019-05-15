@@ -5,7 +5,8 @@
 #####################
 
 # unique name for this set of parameters. Make sure it's a valid folder name.
-name: 'example-config'
+name: 'debug-config'
+
 
 # one of:
 # `cic_paper_network`    -> requires dim_in=(64,64,1)
@@ -13,23 +14,20 @@ name: 'example-config'
 use_network: 'cic_paper_network'
 
 training:
-  - dim_in:  [64, 64, 1]     # Should be 1 or 3 depending on 'used network`
-  - dim_out: [64, 64, 262]   # Should be 2 or 262 depending on 'mode' and 'loss'
+  - dim_in:  [64, 64, 1]   # Should always be a 1-channeled image (gray-scale)
+  - dim_out: [64, 64, 262]   # Should depend on mode (either 262 or 3 output channels)
   - n_epochs: 10
-  - n_workers: 2
+  - n_workers: 3
   - queue_size: 2
   - batch_size: 8
   - shuffle: true
 
-  # one of:
+  # one of 'grey-in-ab-out' or 'grey-in-softencode-out'
   # 'grey-in-ab-out' should be used for l2 loss
-  # 'grey-in-softencode-out' should be used for (weighted) multinomial loss
-  # 'compressed mode' is equal to 'grey-in-softencode-out' but loads faster
-  # `rgb-in-softencode-out` should be used for the transfer-learning vgg net
+  # 'grey-in-softencode-out' should be used multinomial loss
   - mode: 'compressed-mode'
 
-  # one of 'tiny-imagenet-dataset-full', 'tiny-imagenet-dataset-tiny'
-  # or 'debug-dataset'
+  # one of 'tiny-imagenet-dataset-full' or 'tiny-imagenet-dataset-tiny' or 'debug-dataset'
   - dataset: 'debug-dataset'
 
   # one of 'multinomial_loss' or `weighted_multinomial_loss`
@@ -52,9 +50,11 @@ callbacks:
           - path_to_colorisation_images: '../recolor/saved_objects/tracked_pictures.txt'
           - progression_period: 3
       - periodically-save-model:
-          - save_periodically: false
+          - save_periodically: true
           - psm_period: 2  # aim for something around n_epochs/5
           - psm_file_name: 'model.{epoch:02d}-loss_{val_loss:.2f}.hdf5'
       - save-best-model:
-          - save_best: false
+          - save_best: true
           - sbm_file_name: 'best-model.hdf5'
+
+upload_and_shutdown_on_completion: true
