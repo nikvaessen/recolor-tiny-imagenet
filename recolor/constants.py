@@ -165,8 +165,6 @@ training_set_debug_file_paths = training_set_tiny_file_paths[0:_debug_end]
 
 validation_set_debug_file_paths = validation_set_tiny_file_paths[0:_debug_end]
 
-# test_set_tiny_debug_paths = test_set_tiny_file_paths[0:_debug_end]
-
 
 ################################################################################
 # define valid loss functions

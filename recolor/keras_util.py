@@ -23,7 +23,6 @@ else:
     from . import constants as c
     from .networks import multinomial_loss, weighted_multinomial_loss, init_cic_model, init_vgg_transfer_model
 
-
 ################################################################################
 # Define different ways of reading the data
 
