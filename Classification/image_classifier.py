@@ -32,9 +32,9 @@ def init_model():
     # Personalised Classifier
     o = model.output
     o = Flatten()(o)
-    o = Dense(2048, activation='relu')(o)
+    o = Dense(4096, activation='relu')(o)
     o = Dropout(0.5)(o)
-    o = Dense(2048, activation='relu')(o)
+    o = Dense(4096, activation='relu')(o)
     predictions = Dense(30, activation='softmax')(o)
 
     # Finalised model
@@ -48,11 +48,8 @@ def init_model():
 ################################################################################
 # enable training of network
 
-subfolders = ['models', 'tensorboard-log-dir', 'progression']
-def create_result_dir(path):
-    name = 'vgg-classification'
-
-    experiment_path = path + '/' + name + '/'
+subfolders = ['models/', 'tensorboard/', 'bestmodels/']
+def create_result_dir(experiment_path):
 
     if not os.path.isdir(experiment_path):
         os.mkdir(experiment_path)
@@ -71,6 +68,8 @@ def create_result_dir(path):
             os.mkdir(experiment_path_subfolder)
             for sf in subfolders:
                 os.mkdir(os.path.join(experiment_path_subfolder, sf))
+            if os.name == 'nt':
+                experiment_path_subfolder = experiment_path_subfolder.replace('\\', '/')
             return experiment_path_subfolder
 
 
@@ -114,21 +113,25 @@ def train(model: Sequential, mode):
 
     callback_list = list()
 
+    directory = create_result_dir('./vgg_classification')
+    print('Directory:', directory)
+
     print("using tensorboard")
-    tensor_board_dir = create_result_dir('tensorboard')
-    tb_callback = callbacks.TensorBoard(log_dir=tensor_board_dir)
+    tensor_directory = directory + '/' + 'tensorboard'
+    tb_callback = callbacks.TensorBoard(log_dir=tensor_directory)
     callback_list.append(tb_callback)
 
-    saving_period = 10
+
+    saving_period = 2
     print("saving model every {} epochs".format(saving_period))
-    model_dir = create_result_dir('models')
+    model_dir = directory + '/' + 'models'
     p_save_callback = callbacks.ModelCheckpoint(model_dir,
                                                 period=saving_period)
     callback_list.append(p_save_callback)
 
     print("saving best model")
-    best_model = create_result_dir('models')
-    best_save_callback = callbacks.ModelCheckpoint(best_model,
+    bestmodels_dir = directory + '/' + 'bestmodels'
+    best_save_callback = callbacks.ModelCheckpoint(bestmodels_dir,
                                                    save_best_only=True)
     callback_list.append(best_save_callback)
 
