@@ -1,6 +1,6 @@
 keras
 numpy
-tensorflow
+tensorflow-gpu
 scikit-image
 matplotlib
 scipy

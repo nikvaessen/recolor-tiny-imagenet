@@ -5,22 +5,29 @@
 #####################
 
 # unique name for this set of parameters. Make sure it's a valid folder name.
-name: 'example-config'
+name: 'weighted-m-loss-config'
+
+# one of:
+# `cic_paper_network`    -> requires dim_in=(64,64,1)
+# `vgg_transfer_network` -> requires dim_in=(64,64,3)
+use_network: 'cic_paper_network'
 
 training:
   - dim_in:  [64, 64, 1]   # Should always be a 1-channeled image (gray-scale)
   - dim_out: [64, 64, 262]   # Should depend on mode (either 262 or 3 output channels)
-  - n_epochs: 2000
+  - n_epochs: 200
   - n_workers: 3
-  - batch_size: 256
+  - queue_size: 5
+  - batch_size: 32
   - shuffle: true
 
   # one of 'grey-in-ab-out' or 'grey-in-softencode-out'
   # 'grey-in-ab-out' should be used for l2 loss
   # 'grey-in-softencode-out' should be used multinomial loss
-  - mode: 'grey-in-softencode-out'
+  - mode: 'compressed-mode'
 
   # one of 'tiny-imagenet-dataset-full' or 'tiny-imagenet-dataset-tiny' or 'debug-dataset'
+  # or 'tiny-imagenet-dataset-tiny-uncompressed'
   - dataset: 'tiny-imagenet-dataset-tiny'
 
   # one of 'multinomial_loss' or `weighted_multinomial_loss`
@@ -29,19 +36,22 @@ training:
 callbacks:
   - tensorboard:
       - use_tensorboard: true
+  # trigger reduction of lr by 'factor' when difference between last loss and current loss < delta for 'patience' epochs
+  # after a reduction, 'cooldown' epochs will be ignored before reduction can potentially trigger again
   - reducing-learning-rate:
       - reduce_lr_on_plateau: true
       - factor: 0.9
-      - patience: 2
-      - cooldown: 1
+      - patience: 6
+      - cooldown: 10
+      - delta: 1
   - save:
       - colorisation-progress:
           - save_colorisation: true
           - path_to_colorisation_images: '../recolor/saved_objects/tracked_pictures.txt'
-          - progression_period: 3
+          - progression_period: 5
       - periodically-save-model:
           - save_periodically: true
-          - psm_period: 2  # aim for something around n_epochs/5
+          - psm_period: 20  # aim for something around n_epochs/5
           - psm_file_name: 'model.{epoch:02d}-loss_{val_loss:.2f}.hdf5'
       - save-best-model:
           - save_best: true

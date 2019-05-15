@@ -5,31 +5,23 @@
 #####################
 
 # unique name for this set of parameters. Make sure it's a valid folder name.
-name: 'example-config'
-
-# one of:
-# `cic_paper_network`    -> requires dim_in=(64,64,1)
-# `vgg_transfer_network` -> requires dim_in=(64,64,3)
-use_network: 'cic_paper_network'
+name: 'runtime-config'
 
 training:
-  - dim_in:  [64, 64, 1]     # Should be 1 or 3 depending on 'used network`
-  - dim_out: [64, 64, 262]   # Should be 2 or 262 depending on 'mode' and 'loss'
-  - n_epochs: 10
-  - n_workers: 2
-  - queue_size: 2
-  - batch_size: 8
+  - dim_in:  [64, 64, 1]   # Should always be a 1-channeled image (gray-scale)
+  - dim_out: [64, 64, 262]   # Should depend on mode (either 262 or 3 output channels)
+  - n_epochs: 3
+  - n_workers: 1
+  - queue_size: 10
+  - batch_size: 32
   - shuffle: true
 
-  # one of:
+  # one of 'grey-in-ab-out' or 'grey-in-softencode-out'
   # 'grey-in-ab-out' should be used for l2 loss
-  # 'grey-in-softencode-out' should be used for (weighted) multinomial loss
-  # 'compressed mode' is equal to 'grey-in-softencode-out' but loads faster
-  # `rgb-in-softencode-out` should be used for the transfer-learning vgg net
+  # 'grey-in-softencode-out' should be used multinomial loss
   - mode: 'compressed-mode'
 
-  # one of 'tiny-imagenet-dataset-full', 'tiny-imagenet-dataset-tiny'
-  # or 'debug-dataset'
+  # one of 'tiny-imagenet-dataset-full' or 'tiny-imagenet-dataset-tiny' or 'debug-dataset'
   - dataset: 'debug-dataset'
 
   # one of 'multinomial_loss' or `weighted_multinomial_loss`
@@ -38,14 +30,11 @@ training:
 callbacks:
   - tensorboard:
       - use_tensorboard: true
-  # trigger reduction of lr by 'factor' when difference between last loss and current loss < delta for 'patience' epochs
-  # after a reduction, 'cooldown' epochs will be ignored before reduction can potentially trigger again
   - reducing-learning-rate:
       - reduce_lr_on_plateau: false
       - factor: 0.9
       - patience: 2
       - cooldown: 1
-      - delta: 1
   - save:
       - colorisation-progress:
           - save_colorisation: true
@@ -58,3 +47,5 @@ callbacks:
       - save-best-model:
           - save_best: false
           - sbm_file_name: 'best-model.hdf5'
+
+upload_and_shutdown_on_completion: true
