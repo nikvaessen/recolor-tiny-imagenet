@@ -137,6 +137,7 @@ def train(model: Sequential, mode):
 
     n_workers = 2
     n_epochs = 20
+
     model.fit_generator(generator=training_generator,
                         validation_data=validation_generator,
                         use_multiprocessing=True,
