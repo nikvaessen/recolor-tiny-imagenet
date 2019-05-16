@@ -16,6 +16,5 @@ tmux new-session -d -s tensorboard
 tmux send -t tensorboard "source .env/bin/activate" ENTER
 tmux send -t tensorboard "tensorboard --logdir results/" ENTER
 
-tmux new-session -d -s sync
-tmux send -t sync "while true; do ../upload.sh; sleep 600; done" ENTER
-
+#tmux new-session -d -s sync
+#tmux send -t sync "while true; do ../upload.sh; sleep 600; done" ENTER
