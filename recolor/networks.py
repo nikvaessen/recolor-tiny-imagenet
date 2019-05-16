@@ -22,6 +22,9 @@ else:
 ################################################################################
 # Custom loss functions
 
+def get_multinomial_loss():
+    return multinomial_loss
+
 
 def multinomial_loss(y_true, y_pred):
     """
@@ -39,26 +42,29 @@ def multinomial_loss(y_true, y_pred):
     return loss
 
 
-def weighted_multinomial_loss(y_true, y_pred):
-    """
-    :param y_pred: np.array, dimensions should be (n, h, w, q)
-    :param soft_encoded: np.array, dimensions should be (n, h, w, q)
-    Make sure all values are between 0 and 1, and that the sum of soft_encoded = 1
-    :return: loss
-    """
+def get_weighted_multinomial_loss(weights):
+    def weighted_multinomial_loss(y_true, y_pred):
+        """
+        :param y_pred: np.array, dimensions should be (n, h, w, q)
+        :param soft_encoded: np.array, dimensions should be (n, h, w, q)
+        Make sure all values are between 0 and 1, and that the sum of soft_encoded = 1
+        :return: loss
+        """
 
-    v = K.argmax(y_true, axis=3)
-    v = K.one_hot(v, 262)
-    v = v * c.weights
-    v = K.sum(v, axis=3)
+        v = K.argmax(y_true, axis=3)
+        v = K.one_hot(v, 262)
+        v = v * weights
+        v = K.sum(v, axis=3)
 
-    loss = K.categorical_crossentropy(y_true, y_pred, axis=3)  # Cross entropy
-    loss = K.dot(v, loss)
-    loss = K.sum(loss, axis=1)  # Sum over all width vectors
-    loss = K.sum(loss, axis=1)  # Sum over all height vectors
-    loss = K.sum(loss)  # Sum over all images in the batch
+        loss = K.categorical_crossentropy(y_true, y_pred, axis=3)  # Cross entropy
+        loss = K.dot(v, loss)
+        loss = K.sum(loss, axis=1)  # Sum over all width vectors
+        loss = K.sum(loss, axis=1)  # Sum over all height vectors
+        loss = K.sum(loss)  # Sum over all images in the batch
 
-    return loss
+        return loss
+
+    return weighted_multinomial_loss
 
 
 ################################################################################

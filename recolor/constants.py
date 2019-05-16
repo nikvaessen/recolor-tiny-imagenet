@@ -68,7 +68,6 @@ lab_bin_bounding_boxes = _load_np_from_file(_path_bins,
 num_lab_bins = len(lab_bin_centers)
 assert len(lab_bin_centers) == len(lab_bin_bounding_boxes)
 
-#######################################_full_dataset_weight_filename = 'waitlist.pickle'
 #########################################
 # weights used in multinomial loss_function
 
@@ -76,9 +75,20 @@ assert len(lab_bin_centers) == len(lab_bin_bounding_boxes)
 _full_dataset_weight_filename = 'waitlist.pickle'
 _full_dataset_weight_path = os.path.join(_root_dir, _full_dataset_weight_filename)
 full_dataset_weights = np.array(load_pickled_data(_full_dataset_weight_path))
+
 _weight_filename = 'waitlist_tiny.pickle'
 _weight_path = os.path.join(_root_dir, _weight_filename)
 weights = np.array(load_pickled_data(_weight_path))
+
+_prob_dir = os.path.join("..", "probabilities")
+
+_weights_dog_path = os.path.join(_prob_dir, 'weights_list_dog.pickle')
+_weights_fish_path = os.path.join(_prob_dir, 'weights_list_fish.pickle')
+
+
+weights_dog = np.array(load_pickled_data(_weights_dog_path))
+weights_fish = np.array(load_pickled_data(_weights_fish_path))
+
 
 ################################################################################
 # soft-encoding paths
@@ -167,9 +177,23 @@ validation_set_debug_file_paths = validation_set_tiny_file_paths[0:_debug_end]
 
 
 ################################################################################
+# Define really small datasets for dog and fish
+
+dog_dataset = 'dog-dataset'
+dog_train = load_pickled_data(os.path.join(_root_dir, "train_ids_dog.pickle"))
+dog_val = load_pickled_data(os.path.join(_root_dir, "validation_ids_dog.pickle"))
+
+fish_dataset = 'fish-dataset'
+fish_train = load_pickled_data(os.path.join(_root_dir, "train_ids_fish.pickle"))
+fish_val = load_pickled_data(os.path.join(_root_dir, "validation_ids_fish.pickle"))
+
+
+################################################################################
 # define valid loss functions
 
 l2_loss = "l2_loss"
 
 multinomial_loss = "multinomial_loss"
 weighted_multinomial_loss = "weighted_multinomial_loss"
+weighted_multinomial_loss_fish = "weighted_multinomial_loss_dog"
+weighted_multinomial_loss_dog = "weighted_multinomial_loss_fish"
