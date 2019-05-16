@@ -329,8 +329,6 @@ class TrainingConfig:
 
     models = [cic_model, vgg_model]
 
-
-
     modes = [DataGenerator.compressed_mode,
              DataGenerator.mode_grey_in_softencode_out,
              DataGenerator.mode_grey_in_ab_out,
@@ -372,6 +370,14 @@ class TrainingConfig:
                  save_best_model,
                  save_best_model_path):
 
+        self.model = self._validate_arg_and_return(model, TrainingConfig.models)
+        self.dim_in = dim_in
+        self.dim_out = dim_out
+        self.n_epochs = n_epochs
+        self.n_workers = n_workers
+        self.queue_size = queue_size
+        self.batch_size = batch_size
+        self.shuffle = shuffle
 
         self.mode = self._validate_arg_and_return(mode, TrainingConfig.modes)
         self.dataset = self._validate_arg_and_return(dataset, TrainingConfig.datasets)
