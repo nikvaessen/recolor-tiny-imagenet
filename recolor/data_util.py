@@ -365,6 +365,7 @@ def convert(image_paths, out_path):
             writer.write(serialized)
 
 
+
 ################################################################################
 # Create compress objects for inputs and outputs
 #
@@ -375,9 +376,8 @@ def save_input_output(path, newpath):
     lab = image_util.convert_rgb_to_lab(image)
     se = image_util.soft_encode_lab_img(lab)
 
-    new_path = '../data/npz-tiny-imagenet/' + newpath + '_intput_output.npz'
+    new_path = newpath
     np.savez_compressed(new_path, input=lab, output=se)
-    return new_path
 
 
 def save_input_output_ondisk():
@@ -436,6 +436,114 @@ def save_input_output_ondisk():
 
 
 ###############################################################################
+# Create dataset for the 2 class experiments
+# This experiment will consist in training 2 classes, each with the custom weights,
+# and with the other's custom weights
+#
+def save_input_output_2classes(path, newpath):
+    image = image_util.read_image(path)
+    lab = image_util.convert_rgb_to_lab(image)
+    se = image_util.soft_encode_lab_img(lab)
+
+    new_path = newpath
+    np.savez_compressed(new_path, input=lab, output=se)
+
+def create_twoclasses_id():
+    classes = ['n01443537', 'n02099712']
+    root_dir = '../data/tiny-imagenet-200/train/'
+
+    train_ids = {}
+    validation_ids = {}
+
+    for cur_class in classes:
+        dir_path = root_dir + cur_class + '/images/'
+        train_ids[cur_class] = []
+        for subdir, dir, files in os.walk(dir_path):
+            for file in files:
+                path = os.path.join(dir_path, file).replace('\\', '/')
+                if path.split('.')[-1] == "JPEG" and not is_grey_image(path):
+                    train_ids[cur_class].append(path)
+
+    print('Number of training ids for fish', len(train_ids[classes[0]]))
+    with open('./saved_objects/train_ids_fish_uncompressed.pickle', 'wb') as fp:
+        pickle.dump(train_ids[classes[0]], fp)
+    print('Number of training ids for dog', len(train_ids[classes[1]]))
+    with open('./saved_objects/train_ids_dog_uncompressed.pickle', 'wb') as fp:
+        pickle.dump(train_ids[classes[1]], fp)
+
+
+    val_keys = load_validation_keys()
+    root_dir = "../data/tiny-imagenet-200/val/images/"
+
+    validation_ids[classes[0]] = []
+    validation_ids[classes[1]] = []
+    for image in val_keys:
+        if val_keys[image] in classes[0]:
+            path = os.path.join(root_dir, image).replace('\\', '/')
+            validation_ids[classes[0]].append(path)
+        elif val_keys[image] in classes[1]:
+            path = os.path.join(root_dir, image).replace('\\', '/')
+            validation_ids[classes[1]].append(path)
+
+    print('Number of validation ids for fish', len(validation_ids[classes[0]]))
+    with open('./saved_objects/validation_ids_fish_uncompressed.pickle', 'wb') as fp:
+        pickle.dump(validation_ids[classes[0]], fp)
+    print('Number of validation ids for dog', len(validation_ids[classes[1]]))
+    with open('./saved_objects/validation_ids_dog_uncompressed.pickle', 'wb') as fp:
+        pickle.dump(validation_ids[classes[1]], fp)
+
+def save_twoclasses_npz():
+    train_dir = './saved_objects/train_ids_'
+    validation_dir = './saved_objects/validation_ids_'
+    output_dir = '../data/2classes/'
+    classes = ['fish', 'dog']
+
+    training_ids_npz = {}
+    validation_ids_npz = {}
+
+    train_output_dir = output_dir + 'train/'
+    for i in range(len(classes)):
+        path_in = train_dir + classes[i] + '_uncompressed.pickle'
+        training_ids_npz[classes[i]] = []
+        with open(path_in, 'rb') as fp:
+            ids = pickle.load(fp)
+
+        for image in ids:
+            newname = image.split('/')[-1].split('.')[0]
+            newpath = train_output_dir + newname + '.npz'
+            training_ids_npz[classes[i]].append(newpath)
+            save_input_output_2classes(image, newpath)
+
+        direc = train_dir + classes[i] + '.pickle'
+        print(direc, 'has length', len(training_ids_npz[classes[0]]))
+        with open(direc, 'wb') as fp:
+            pickle.dump(training_ids_npz[classes[i]], fp)
+
+
+    validation_output_dir = output_dir + 'val/'
+    for i in range(len(classes)):
+        path_in = validation_dir + classes[i] + '_uncompressed.pickle'
+        validation_ids_npz[classes[i]] = []
+        with open(path_in, 'rb') as fp:
+            ids = pickle.load(fp)
+
+        for image in ids:
+            newname = image.split('/')[-1].split('.')[0]
+            newpath = validation_output_dir + newname + '.npz'
+            validation_ids_npz[classes[i]].append(newpath)
+            save_input_output_2classes(image, newpath)
+
+        direc = validation_dir + classes[i] + '.pickle'
+        print(direc, 'has length', len(validation_ids_npz[classes[0]]))
+        with open(direc, 'wb') as fp:
+            pickle.dump(validation_ids_npz[classes[i]], fp)
+
+
+def create_twoclasses_dataset():
+    # create_twoclasses_id()
+    save_twoclasses_npz()
+
+###############################################################################
 # Test loadgin functions
 
 
@@ -454,6 +562,5 @@ def test_loading():
 ################################################################################
 # Create pickled files for used by DataGenerator when this file is run directly
 
-
 if __name__ == '__main__':
-    create_id_labels()
+    create_twoclasses_dataset()
