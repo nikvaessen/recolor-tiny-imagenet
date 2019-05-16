@@ -28,7 +28,7 @@ training:
 
   # one of 'tiny-imagenet-dataset-full' or 'tiny-imagenet-dataset-tiny' or 'debug-dataset'
   # or 'tiny-imagenet-dataset-tiny-uncompressed'
-  - dataset: 'dogloss_dog_train_dog.yaml-dataset'
+  - dataset: 'dog-dataset'
 
   # one of 'multinomial_loss' or `weighted_multinomial_loss`
   - loss: 'weighted_multinomial_loss_fish'
