@@ -43,6 +43,7 @@ def generate_data_paths_and_pickle():
 
     with open('./saved_objects/train_ids.pickle', 'wb') as fp:
         pickle.dump(train_ids, fp)
+    print('There are', len(train_ids), 'samples in trainng')
 
     print("created training id's")
 
@@ -334,7 +335,9 @@ def convert(image_paths, out_path):
     # Open a TFRecordWriter for the output-file.
     with tf.python_io.TFRecordWriter(out_path) as writer:
         # Iterate over all the image-paths
-        for i, (path, label) in enumerate(image_paths):
+        for i, path in enumerate(image_paths):
+            if i % 1000 == 0:
+                print('Serialised ', i, 'files')
             # Read the images
             rgb = np.array(image_util.read_image(path))
             cie = np.array(image_util.convert_rgb_to_lab(rgb))
@@ -349,7 +352,7 @@ def convert(image_paths, out_path):
             data = \
                 {
                     'cie': wrap_bytes(cie_bytes),
-                    'label': wrap_bytes(label)
+                    'label': wrap_bytes(se_bytes)
                 }
 
             # Wrap the data as TensorFlow Features.
@@ -364,6 +367,26 @@ def convert(image_paths, out_path):
             # Write the serialized data to the TFRecords file.
             writer.write(serialized)
 
+
+def convert_dataset_into_tfrecord():
+    training_ids = './saved_objects/train_ids.pickle'
+    with open(training_ids, 'rb') as fp:
+        training_paths = pickle.load(fp)
+    print('There are', len(training_paths), 'samples in the training set')
+    training_out = './saved_objects/train_alltiny_tfrecord.tfrecord'
+
+    validation_ids = './saved_objects/test_ids.pickle'
+    with open(validation_ids, 'rb') as fp:
+        validation_paths = pickle.load(fp)
+    print('There are', len(validation_paths), 'samples in the validation set')
+    validation_out = './saved_objects/validation_alltiny_tfrecord.tfrecord'
+
+    convert(training_paths, training_out)
+    convert(validation_paths, validation_out)
+
+def create_all_tf_records():
+    # generate_data_paths_and_pickle()
+    convert_dataset_into_tfrecord()
 
 
 ################################################################################
@@ -563,4 +586,5 @@ def test_loading():
 # Create pickled files for used by DataGenerator when this file is run directly
 
 if __name__ == '__main__':
-    create_twoclasses_dataset()
+    # create_twoclasses_dataset()
+    create_all_tf_records()
