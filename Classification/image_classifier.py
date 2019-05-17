@@ -35,7 +35,7 @@ def init_model():
     predictions = Dense(30, activation='softmax')(o)
 
     # Finalised model
-    opt = optimizers.SGD(nesterov=True, model=0.9)
+    opt = optimizers.SGD(nesterov=True, momentum=0.9)
     final_model = Model(input=model.input, output=predictions)
     final_model.compile(loss='categorical_crossentropy',
                         optimizer=opt,
