@@ -42,7 +42,8 @@ def init_model():
     adam = optimizers.adam()
     final_model = Model(input=model.input, output=predictions)
     final_model.compile(loss='categorical_crossentropy',
-                        optimizer=adam)
+                        optimizer=adam,
+                        metrics=['accuracy'])
 
     return final_model
 
@@ -135,7 +136,7 @@ def train(model: Sequential, mode):
     callback_list.append(best_save_callback)
 
     n_workers = 2
-    n_epochs = 1
+    n_epochs = 100
 
     model.fit_generator(generator=training_generator,
                         validation_data=validation_generator,

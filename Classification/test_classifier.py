@@ -1,50 +1,55 @@
 import pickle
 import keras
 
-import data_utils
+import numpy as np
 
-model_path = "vgg_classification/run1/bestmodels/best_model.hdf5"
+import data_utils
+from image_classifier import init_model
+
+model_path = "vgg_classification/run8/bestmodels/best_model.hdf5"
 test_ids_fn = "test_ids_tiny.pickle"
 
 
 def main():
-    with open(test_ids_fn, 'rb') as f:
-        test_file_paths = pickle.load(f)
-        print(test_file_paths[0])
+    mode = 'colour'
 
-    with open('id_label.pickle', 'rb') as f:
-        labels = pickle.load(f)
-        print(labels)
+    if mode == 'gray':
+        with open('./validation_ids_gray.pickle', 'rb') as fp:
+            validation_paths = pickle.load(fp)
 
-    with open('id_name.pickle', 'rb') as f:
-        name_to_label = pickle.load(f)
-        print(name_to_label)
+    elif mode == 'recoloured':
+        with open('./validation_ids_recolour.pickle', 'rb') as fp:
+            validation_paths = pickle.load(fp)
 
-    with open('label_id.pickle', 'rb') as f:
-        lable_id = pickle.load(f)
-        print(lable_id)
+    elif mode == 'colour':
+        with open('./validation_ids_tiny.pickle', 'rb') as fp:
+            validation_paths = pickle.load(fp)
 
-    #
-    # mode = 'colour'
-    # dim_in = (64, 64, 3)
-    # shuffle = True
-    # batch_size = 1
-    # n_classes = 30
-    # dim_out = (n_classes)
-    #
-    # training_generator = data_utils.DataGenerator(test_file_paths, batch_size,
-    #                                               dim_in, dim_out, shuffle,
-    #                                               mode, 'validation')
-    #
-    # num_samples = training_generator.__len__()
-    #
-    # sample = training_generator[0]
-    #
-    # print(sample)
+    dim_in = (64, 64, 3)
+    shuffle = True
+    batch_size = 32
+    n_classes = 30
+    dim_out = (n_classes)
 
-    # model = keras.models.load_model(model_path)
-    # model = keras.models.Model()
+    training_generator = data_utils.DataGenerator(validation_paths, batch_size,
+                                                  dim_in, dim_out, shuffle,
+                                                  mode, 'validation')
 
+    model = keras.models.load_model(model_path)
+
+    total = 0
+    correct = 0
+    for batch in training_generator:
+        X, y = batch
+        total += X.shape[0]
+
+        y = np.argmax(y, axis=1)
+        p = np.argmax(model.predict(X), axis=1)
+
+        c = (y == p).sum()
+        correct += c
+
+    print("acc:", correct/total)
 
 
     pass
