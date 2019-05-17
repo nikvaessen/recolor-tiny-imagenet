@@ -10,6 +10,8 @@ else:
     from . import image_util
     from . import constants as c
 
+import tensorflow as tf
+
 
 ################################################################################
 # stores paths to tiny-imagenet files as pickled arrays. These arrays
@@ -39,8 +41,9 @@ def generate_data_paths_and_pickle():
                     not is_grey_image(path):
                 train_ids.append(path)
 
-    with open('./train_ids.pickle', 'wb') as fp:
+    with open('./saved_objects/train_ids.pickle', 'wb') as fp:
         pickle.dump(train_ids, fp)
+    print('There are', len(train_ids), 'samples in trainng')
 
     print("created training id's")
 
@@ -54,7 +57,7 @@ def generate_data_paths_and_pickle():
                     not is_grey_image(path):
                 validation_ids.append(path)
 
-    with open('./validation_ids.pickle', 'wb') as fp:
+    with open('./saved_objects/validation_ids.pickle', 'wb') as fp:
         pickle.dump(validation_ids, fp)
 
     print("created validation id's")
@@ -70,7 +73,7 @@ def generate_data_paths_and_pickle():
                     not is_grey_image(path):
                 test_ids.append(path)
 
-    with open('./test_ids.pickle', 'wb') as fp:
+    with open('./saved_objects/test_ids.pickle', 'wb') as fp:
         pickle.dump(test_ids, fp)
 
     print("created test id's")
@@ -270,6 +273,121 @@ def count_number_of_images():
         test_paths = pickle.load(fp)
     print("Number of training images: ", len(test_paths))
 
+################################################################################
+# Create compressed tensor record data
+#
+
+def create_id_labels():
+    '''
+    Create files to map labels to their name labels, and to an arbitraty id from 0 to 200
+    :return:
+    '''
+    keys = load_keys()
+    label_path = "../data/tiny-imagenet-200/wnids.txt"
+    labels = []
+    with open(label_path) as f:
+        for line in f:
+            labels.append(line.split('\n')[0])
+
+    id_label = {}
+    label_id = {}
+    label_name = {}
+
+    for i, label in enumerate(labels):
+        name = keys[label]
+        id_label[i] = label
+        label_id[label] = i
+        label_name[label] = name
+        print('Label', label, 'coressponds to', name, 'with class', i)
+
+
+def wrap_int64(value):
+    '''
+    :param value:
+    :return: returns a list of number into a tfrecord object
+    '''
+    return tf.train.Feature(int64_list=tf.train.Int64List(value=[value]))
+
+
+def wrap_bytes(value):
+    '''
+
+    :param value:
+    :return: returns a list of object into a tfrecord object
+    '''
+    return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
+
+
+def convert(image_paths, out_path):
+    '''
+    This functions creates tf record object.
+    Inputs are the paths to the rgb pictures. This functions saves
+    the different images in their cielab format and in their soft encoded format
+    :param image_path: Path to the images to convert into a tfrecord object
+    :param out_path: Path where to save the tfrecord object
+    :return:
+    '''
+
+    print("Converting: " + out_path)
+    # Number of images. Used when printing the progress.
+    num_images = len(image_paths)
+
+    # Open a TFRecordWriter for the output-file.
+    with tf.python_io.TFRecordWriter(out_path) as writer:
+        # Iterate over all the image-paths
+        for i, path in enumerate(image_paths):
+            if i % 1000 == 0:
+                print('Serialised ', i, 'files')
+            # Read the images
+            rgb = np.array(image_util.read_image(path))
+            cie = np.array(image_util.convert_rgb_to_lab(rgb))
+            se = np.array(image_util.soft_encode_lab_img(cie))
+
+            # Convert them into raw bytes
+            cie_bytes = cie.tostring()
+            se_bytes = se.tostring()
+
+            # Create a dict with the data saved in the record files
+
+            data = \
+                {
+                    'cie': wrap_bytes(cie_bytes),
+                    'label': wrap_bytes(se_bytes)
+                }
+
+            # Wrap the data as TensorFlow Features.
+            feature = tf.train.Features(feature=data)
+
+            # Wrap again as a TensorFlow Example.
+            example = tf.train.Example(features=feature)
+
+            # Serialize the data.
+            serialized = example.SerializeToString()
+
+            # Write the serialized data to the TFRecords file.
+            writer.write(serialized)
+
+
+def convert_dataset_into_tfrecord():
+    training_ids = './saved_objects/train_ids.pickle'
+    with open(training_ids, 'rb') as fp:
+        training_paths = pickle.load(fp)
+    print('There are', len(training_paths), 'samples in the training set')
+    training_out = './saved_objects/train_alltiny_tfrecord.tfrecord'
+
+    validation_ids = './saved_objects/test_ids.pickle'
+    with open(validation_ids, 'rb') as fp:
+        validation_paths = pickle.load(fp)
+    print('There are', len(validation_paths), 'samples in the validation set')
+    validation_out = './saved_objects/validation_alltiny_tfrecord.tfrecord'
+
+    convert(training_paths, training_out)
+    convert(validation_paths, validation_out)
+
+def create_all_tf_records():
+    # generate_data_paths_and_pickle()
+    convert_dataset_into_tfrecord()
+
 
 ################################################################################
 # Create compress objects for inputs and outputs
@@ -281,9 +399,8 @@ def save_input_output(path, newpath):
     lab = image_util.convert_rgb_to_lab(image)
     se = image_util.soft_encode_lab_img(lab)
 
-    new_path = '../data/npz-tiny-imagenet/' + newpath + '_intput_output.npz'
+    new_path = newpath
     np.savez_compressed(new_path, input=lab, output=se)
-    return new_path
 
 
 def save_input_output_ondisk():
@@ -342,6 +459,114 @@ def save_input_output_ondisk():
 
 
 ###############################################################################
+# Create dataset for the 2 class experiments
+# This experiment will consist in training 2 classes, each with the custom weights,
+# and with the other's custom weights
+#
+def save_input_output_2classes(path, newpath):
+    image = image_util.read_image(path)
+    lab = image_util.convert_rgb_to_lab(image)
+    se = image_util.soft_encode_lab_img(lab)
+
+    new_path = newpath
+    np.savez_compressed(new_path, input=lab, output=se)
+
+def create_twoclasses_id():
+    classes = ['n01443537', 'n02099712']
+    root_dir = '../data/tiny-imagenet-200/train/'
+
+    train_ids = {}
+    validation_ids = {}
+
+    for cur_class in classes:
+        dir_path = root_dir + cur_class + '/images/'
+        train_ids[cur_class] = []
+        for subdir, dir, files in os.walk(dir_path):
+            for file in files:
+                path = os.path.join(dir_path, file).replace('\\', '/')
+                if path.split('.')[-1] == "JPEG" and not is_grey_image(path):
+                    train_ids[cur_class].append(path)
+
+    print('Number of training ids for fish', len(train_ids[classes[0]]))
+    with open('./saved_objects/train_ids_fish_uncompressed.pickle', 'wb') as fp:
+        pickle.dump(train_ids[classes[0]], fp)
+    print('Number of training ids for dog', len(train_ids[classes[1]]))
+    with open('./saved_objects/train_ids_dog_uncompressed.pickle', 'wb') as fp:
+        pickle.dump(train_ids[classes[1]], fp)
+
+
+    val_keys = load_validation_keys()
+    root_dir = "../data/tiny-imagenet-200/val/images/"
+
+    validation_ids[classes[0]] = []
+    validation_ids[classes[1]] = []
+    for image in val_keys:
+        if val_keys[image] in classes[0]:
+            path = os.path.join(root_dir, image).replace('\\', '/')
+            validation_ids[classes[0]].append(path)
+        elif val_keys[image] in classes[1]:
+            path = os.path.join(root_dir, image).replace('\\', '/')
+            validation_ids[classes[1]].append(path)
+
+    print('Number of validation ids for fish', len(validation_ids[classes[0]]))
+    with open('./saved_objects/validation_ids_fish_uncompressed.pickle', 'wb') as fp:
+        pickle.dump(validation_ids[classes[0]], fp)
+    print('Number of validation ids for dog', len(validation_ids[classes[1]]))
+    with open('./saved_objects/validation_ids_dog_uncompressed.pickle', 'wb') as fp:
+        pickle.dump(validation_ids[classes[1]], fp)
+
+def save_twoclasses_npz():
+    train_dir = './saved_objects/train_ids_'
+    validation_dir = './saved_objects/validation_ids_'
+    output_dir = '../data/2classes/'
+    classes = ['fish', 'dog']
+
+    training_ids_npz = {}
+    validation_ids_npz = {}
+
+    train_output_dir = output_dir + 'train/'
+    for i in range(len(classes)):
+        path_in = train_dir + classes[i] + '_uncompressed.pickle'
+        training_ids_npz[classes[i]] = []
+        with open(path_in, 'rb') as fp:
+            ids = pickle.load(fp)
+
+        for image in ids:
+            newname = image.split('/')[-1].split('.')[0]
+            newpath = train_output_dir + newname + '.npz'
+            training_ids_npz[classes[i]].append(newpath)
+            save_input_output_2classes(image, newpath)
+
+        direc = train_dir + classes[i] + '.pickle'
+        print(direc, 'has length', len(training_ids_npz[classes[0]]))
+        with open(direc, 'wb') as fp:
+            pickle.dump(training_ids_npz[classes[i]], fp)
+
+
+    validation_output_dir = output_dir + 'val/'
+    for i in range(len(classes)):
+        path_in = validation_dir + classes[i] + '_uncompressed.pickle'
+        validation_ids_npz[classes[i]] = []
+        with open(path_in, 'rb') as fp:
+            ids = pickle.load(fp)
+
+        for image in ids:
+            newname = image.split('/')[-1].split('.')[0]
+            newpath = validation_output_dir + newname + '.npz'
+            validation_ids_npz[classes[i]].append(newpath)
+            save_input_output_2classes(image, newpath)
+
+        direc = validation_dir + classes[i] + '.pickle'
+        print(direc, 'has length', len(validation_ids_npz[classes[0]]))
+        with open(direc, 'wb') as fp:
+            pickle.dump(validation_ids_npz[classes[i]], fp)
+
+
+def create_twoclasses_dataset():
+    # create_twoclasses_id()
+    save_twoclasses_npz()
+
+###############################################################################
 # Test loadgin functions
 
 
@@ -360,12 +585,6 @@ def test_loading():
 ################################################################################
 # Create pickled files for used by DataGenerator when this file is run directly
 
-
 if __name__ == '__main__':
-    # generate_data_paths_and_pickle()
-    # get_available_classes()
-    # get_tinytiny_dataset()
-    # save_softencode_ondisk()
-    # check_already_encoded_images()
-    # save_input_output_ondisk()
-    test_loading()
+    # create_twoclasses_dataset()
+    create_all_tf_records()

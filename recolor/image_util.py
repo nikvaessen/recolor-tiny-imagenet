@@ -345,7 +345,130 @@ def probability_dist_to_ab_tensor(pdist):
 
     return batch_ab
 
+def probability_dist_to_ab_means(pdist, T=1):
+    """
+    given the probability distribution of our network,
+    calculates the bin per pixel through the mean of the
+    probability distribution
+    """
+    #generate list for multiplication
+    batch_ab = np.empty((*pdist.shape[0:3], 2))
+    print(batch_ab.shape)
 
+    l = []
+    for x in range(pdist.shape[-1]):
+        l.append(x+1)
+    mul = np.multiply(pdist,l)
+    mul2 = np.sum(mul,axis=-1)
+    mul2 = mul2.astype(int)
+    mul2 = mul2-1
+    mul2 =np.expand_dims(mul2, axis=3)
+    
+    for i in range(mul2.shape[0]):
+        p = mul2[i, :, :, :]
+        for j in range(p.shape[0]):
+            for k in range(p.shape[1]):
+                bin_idx = p[j, k]
+                ab = lab_bin_centers[bin_idx]
+                batch_ab[i, j, k, :] = ab
+    return batch_ab
+
+def annealedMean(probdis):
+    """
+    Given a probability distribution, calculates the annealed
+    mean via the function (5) of the paper
+    """
+    p = probdis
+    res = np.ones((p.shape[0],
+                  p.shape[1],
+                  p.shape[2],
+                  p.shape[3]))
+    print(p.shape)
+    # for all distris
+    for i in range(p.shape[0]):
+        for j in range(p.shape[1]):
+            for k in range(p.shape[2]):
+                pR = (p[i][j][k])
+                nPro = []
+                s = 0.0
+                # calculate sum
+                for v in pR:
+                    if(v != 0):
+                        temp = np.log(v)
+                        temp /= temperature
+                        temp = np.exp(temp)
+                        s += temp
+                # save new value after division
+                for v in pR:
+                    if(v != 0):
+                        temp = np.log(v)
+                        temp = temp / temperature
+                        temp = np.exp(temp)
+                        temp /= s
+                        nPro.append(temp)
+                    else:
+                        nPro.append(0.0)
+                res[i][j][k]=nPro
+    return res
+
+def getNeigbourMean(p1,p2,p3,m):
+    """
+    given a single matrix of color values of an image
+    calculates the new a_b color values by taking the mean of the directly
+    sorounding pixels
+
+    @input = ab pair matrix per image
+    """
+    value = 0.0
+    c = 0.0
+    if(p2-1>=0):
+        if(p3-1>=0):
+            value+=m[p1][p2-1][p3-1]
+            c+=1
+        value += m[p1][p2-1][p3]
+        c+=1
+        if(p3+1<64):
+            value += m[p1][p2-1][p3+1]
+            c+=1
+
+    if(p2+1<64):
+        if(p3-1>=0):
+            value+=m[p1][p2+1][p3-1]
+            c+=1
+        value += m[p1][p2+1][p3]
+        c+=1
+        if(p3+1<64):
+            value += m[p1][p2+1][p3+1]
+            c+=1
+    if(p3-1>=0):
+        value+=m[p1][p2][p3-1]
+        c+=1
+    value += m[p1][p2][p3]
+    c+=1
+    if(p3+1<64):
+        value += m[p1][p2][p3+1]
+        c+=1
+    value /= c
+    return value
+        
+
+def matrixmean(matrix):
+    """
+    transforms a ab color matrix by re-calculating
+    the values by taking the mean of the sorounding pixels
+    """
+    m = matrix
+    res = np.ones((m.shape[0],
+                  m.shape[1],
+                  m.shape[2],
+                  m.shape[3]))
+    for i in range(m.shape[0]):
+        for j in range(m.shape[1]):
+            for k in range(m.shape[2]):
+                v = getNeigbourMean(i,j,k,m)
+                res[i][j][k]=v
+    return res
+                
 ###############################################################################
 # tests
 

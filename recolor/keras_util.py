@@ -18,29 +18,14 @@ import keras.callbacks as callbacks
 if __name__ == '__main__' or __name__ == 'keras_util':
     import image_util
     import constants as c
-    from networks import multinomial_loss, weighted_multinomial_loss, init_cic_model, init_vgg_transfer_model
+    from networks import multinomial_loss, get_weighted_multinomial_loss, init_cic_model, init_vgg_transfer_model
 else:
     from . import image_util
     from . import constants as c
-    from .networks import multinomial_loss, weighted_multinomial_loss, init_cic_model, init_vgg_transfer_model
+    from .networks import multinomial_loss, get_weighted_multinomial_loss, init_cic_model, init_vgg_transfer_model
 
 ################################################################################
 # Define different ways of reading the data
-
-def load_compressed_files(image_path):
-    """
-    Load the compressed file image_path.npz where the attribute input
-    is the cielab image, and where the attribute ouput is the soft
-    encoding version of the expected colour bin as a
-    (width*height*num_bins) np array
-    :param image_path: path to the npz file
-    :return: the cielab image and the soft encoded image in that order
-    """
-
-    compressed = np.load(image_path)
-    cielab, soft_encode = compressed['input'], compressed['output']
-
-    return cielab, soft_encode
 
 
 def load_compressed_files(image_path):
@@ -329,8 +314,6 @@ class TrainingConfig:
 
     models = [cic_model, vgg_model]
 
-
-
     modes = [DataGenerator.compressed_mode,
              DataGenerator.mode_grey_in_softencode_out,
              DataGenerator.mode_grey_in_ab_out,
@@ -339,9 +322,14 @@ class TrainingConfig:
     datasets = [c.n_training_set_tiny_uncompressed,
                 c.tiny_imagenet_dataset_full,
                 c.tiny_imagenet_dataset_tiny,
-                c.debug_dataset]
+                c.debug_dataset,
+                c.dog_dataset,
+                c.fish_dataset]
 
-    losses = [c.multinomial_loss, c.weighted_multinomial_loss]
+    weights = ['full', 'dog', 'fish']
+
+    losses = [c.multinomial_loss, c.weighted_multinomial_loss,
+              c.weighted_multinomial_loss_fish, c.weighted_multinomial_loss_dog]
 
     def __init__(self,
                  model,
@@ -372,6 +360,14 @@ class TrainingConfig:
                  save_best_model,
                  save_best_model_path):
 
+        self.model = self._validate_arg_and_return(model, TrainingConfig.models)
+        self.dim_in = dim_in
+        self.dim_out = dim_out
+        self.n_epochs = n_epochs
+        self.n_workers = n_workers
+        self.queue_size = queue_size
+        self.batch_size = batch_size
+        self.shuffle = shuffle
 
         self.mode = self._validate_arg_and_return(mode, TrainingConfig.modes)
         self.dataset = self._validate_arg_and_return(dataset, TrainingConfig.datasets)
@@ -421,9 +417,17 @@ class TrainingConfig:
         elif self.dataset == c.tiny_imagenet_dataset_tiny:
             training_path = c.training_set_tiny_file_paths
             validation_path = c.validation_set_tiny_file_paths
-        else:
+        elif self.dataset == c.fish_dataset:
+            training_path = c.fish_train
+            validation_path = c.fish_val
+        elif self.dataset == c.dog_dataset:
+            training_path = c.dog_train
+            validation_path = c.dog_val
+        elif self.dataset == c.debug_dataset:
             training_path = c.training_set_debug_file_paths
             validation_path = c.validation_set_debug_file_paths
+        else:
+            raise ValueError("could not find dataset {}".format(self.dataset))
 
         print('using dataset:', self.dataset)
         print("using {} training samples".format(len(training_path)))
@@ -438,7 +442,11 @@ class TrainingConfig:
         if self.loss == c.multinomial_loss:
             loss = multinomial_loss
         elif self.loss == c.weighted_multinomial_loss:
-            loss = weighted_multinomial_loss
+            loss = get_weighted_multinomial_loss(c.weights)
+        elif self.loss == c.weighted_multinomial_loss_dog:
+            loss = get_weighted_multinomial_loss(c.weights_dog)
+        elif self.loss == c.weighted_multinomial_loss_fish:
+            loss = get_weighted_multinomial_loss(c.weights_fish)
         else:
             raise ValueError("could not set correct loss")
 
