@@ -186,7 +186,7 @@ def init_cic_model(input_shape,
     model.add(Conv2D(filters=c.num_lab_bins, kernel_size=1, strides=(1, 1)))
     model.add(Activation(softmax))
 
-    opt = optimizers.SGD()
+    opt = optimizers.adam()
 
     model.compile(loss=loss_function, optimizer=opt)
 
