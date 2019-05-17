@@ -14,12 +14,10 @@ import pickle
 import numpy as np
 import keras
 import image_logic
-from keras import Sequential
-from keras import callbacks
-from keras import callbacks
 
 ################################################################################
 # Data Generator class loaded at training time to provide the data in the batches
+
 
 class DataGenerator(keras.utils.Sequence):
     def __init__(self, data_paths, batch_size, dim_in, dim_out, shuffle, mode, dataset_type):
@@ -41,16 +39,17 @@ class DataGenerator(keras.utils.Sequence):
         self.data_paths = data_paths
         self.shuffle = shuffle
         self.mode = mode
+
         if dataset_type == 'validation':
             self.keys = load_validation_keys()
+
         self.dataset_type = dataset_type
+
         with open('./label_id.pickle', 'rb') as fp:
             self.label_id = pickle.load(fp)
 
         self.indices = []
         self.on_epoch_end()
-
-
 
     def on_epoch_end(self):
         '''
@@ -75,7 +74,6 @@ class DataGenerator(keras.utils.Sequence):
             label = path.split('/')[-1]
             label = self.keys[label]
 
-
         return self.label_id[label]
 
     def __data_generation(self, batch_paths):
@@ -87,7 +85,7 @@ class DataGenerator(keras.utils.Sequence):
         # Initialization
 
         X = np.empty((self.batch_size, *self.dim_in))
-        y = np.empty((self.batch_size, self.dim_out))
+        y = np.zeros((self.batch_size, self.dim_out))
 
         # Generate data
         for i, path in enumerate(batch_paths):
@@ -99,7 +97,7 @@ class DataGenerator(keras.utils.Sequence):
             inp = image_logic.read_image(path)
             outp = self.get_output(path)
             X[i, ] = inp
-            y[i, ] = outp
+            y[i, outp] = 1
 
         return X, y
 
@@ -159,7 +157,6 @@ def name_to_float():
         pickle.dump(id_name, fp)
 
 
-
 def load_keys():
     '''
     This function loads the file keeping track of the labels of the image
@@ -192,6 +189,7 @@ def load_validation_keys():
 #######################################################################################
 # Save images into their gray values
 #
+
 
 def save_gray_image(path, im_name):
     image = image_logic.read_image(path)

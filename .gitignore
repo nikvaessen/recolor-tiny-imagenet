@@ -107,3 +107,4 @@ data/
 .idea
 tensorboard
 experiments/queue/*
+Classification/vgg_classification/
