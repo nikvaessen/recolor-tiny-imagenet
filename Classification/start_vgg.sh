@@ -2,9 +2,6 @@
 
 set -e
 
-if tmux info &> /dev/null; then
-  tmux kill-server
-fi
 
 tmux new-session -d -s tensorboard
 tmux send -t tensorboard "source .env/bin/activate" ENTER
