@@ -8,8 +8,7 @@ fi
 
 tmux new-session -d -s tensorboard
 tmux send -t tensorboard "source .env/bin/activate" ENTER
-tmux send -t tensorboard "tensorboard --logdir results/" ENTER
-
+tmux send -t tensorboard "tensorboard --logdir vgg_classification" ENTER
 
 source ../venv/bin/activate
 export PYTHONPATH=${PYTHONPATH}:../

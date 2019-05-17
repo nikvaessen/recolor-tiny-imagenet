@@ -24,11 +24,7 @@ image_shape = (64, 64, 3)
 def init_model():
 
     # Pre-trained VGG16
-    model = applications.VGG16(weights='imagenet', include_top=False, input_shape=image_shape)
-
-    # Freeze the first layers of the network
-    for layer in model.layers[:5]:
-        layer.trainable = False
+    model = applications.VGG16(weights=None, include_top=False, input_shape=image_shape)
 
     # Personalised Classifier
     o = model.output
@@ -39,10 +35,10 @@ def init_model():
     predictions = Dense(30, activation='softmax')(o)
 
     # Finalised model
-    adam = optimizers.adam()
+    opt = optimizers.SGD(nesterov=True, model=0.9)
     final_model = Model(input=model.input, output=predictions)
     final_model.compile(loss='categorical_crossentropy',
-                        optimizer=adam,
+                        optimizer=opt,
                         metrics=['accuracy'])
 
     return final_model
@@ -103,7 +99,7 @@ def train(model: Sequential, mode):
     # params
     dim_in = (64, 64, 3)
     shuffle = True
-    batch_size = 32
+    batch_size = 64
     n_classes = 30
     dim_out = (n_classes)
 
@@ -122,7 +118,7 @@ def train(model: Sequential, mode):
     tb_callback = callbacks.TensorBoard(log_dir=tensor_directory)
     callback_list.append(tb_callback)
 
-    saving_period = 1
+    saving_period = 3
     print("saving model every {} epochs".format(saving_period))
     model_dir = os.path.join(directory, 'models', 'model.{epoch:02d}-loss_{val_loss:.2f}.hdf5')
     p_save_callback = callbacks.ModelCheckpoint(model_dir,
@@ -132,11 +128,18 @@ def train(model: Sequential, mode):
     print("saving best model")
     bestmodels_dir = directory + '/' + 'bestmodels/best_model.hdf5'
     best_save_callback = callbacks.ModelCheckpoint(bestmodels_dir,
-                                                   save_best_only=True)
+                                                   save_best_only=True,
+                                                   mode='val_acc')
     callback_list.append(best_save_callback)
 
+    lr_reduce = callbacks.ReduceLROnPlateau(monitor='val_acc',
+                                            factor=0.2,
+                                            patience=4
+                                            )
+    callback_list.append(lr_reduce)
+
     n_workers = 2
-    n_epochs = 100
+    n_epochs = 30
 
     model.fit_generator(generator=training_generator,
                         validation_data=validation_generator,
