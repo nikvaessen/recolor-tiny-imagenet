@@ -5,7 +5,7 @@
 #####################
 
 # unique name for this set of parameters. Make sure it's a valid folder name.
-name: 'm-loss-config'
+name: 'm-loss-config-less-layers'
 
 # one of:
 # `cic_paper_network`    -> requires dim_in=(64,64,1)
